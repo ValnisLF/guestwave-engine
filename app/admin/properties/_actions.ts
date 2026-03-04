@@ -523,3 +523,35 @@ export async function syncPropertyIcalCalendarAction(calendarId: string): Promis
     return { success: false, error: 'Error syncing iCal calendar' };
   }
 }
+
+export async function deletePropertyIcalCalendar(calendarId: string): Promise<PropertyResponse> {
+  try {
+    const calendar = await prisma.propertyIcalCalendar.findUnique({
+      where: { id: calendarId },
+      select: { id: true, propertyId: true },
+    });
+
+    if (!calendar) {
+      return { success: false, error: 'Calendar not found' };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.blockedDate.deleteMany({
+        where: {
+          propertyId: calendar.propertyId,
+          source: 'ICAL',
+          icalCalendarId: calendar.id,
+        },
+      });
+
+      await tx.propertyIcalCalendar.delete({
+        where: { id: calendar.id },
+      });
+    });
+
+    return { success: true, data: { id: calendar.id } };
+  } catch (error) {
+    console.error('deletePropertyIcalCalendar error:', error);
+    return { success: false, error: 'Error deleting iCal calendar' };
+  }
+}

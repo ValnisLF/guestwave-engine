@@ -6,6 +6,7 @@ import {
   createProperty,
   createPropertyIcalCalendar,
   createSeasonRate,
+  deletePropertyIcalCalendar,
   deleteSeasonRate,
   syncAllCalendars,
   syncPropertyIcalCalendarAction,
@@ -78,9 +79,11 @@ export function InventoryPricingAdmin({
   const [syncing, setSyncing] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
   const [updatingCalendar, setUpdatingCalendar] = useState(false);
+  const [deletingCalendar, setDeletingCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [editingCalendarId, setEditingCalendarId] = useState<string | null>(null);
+  const [confirmDeleteCalendarId, setConfirmDeleteCalendarId] = useState<string | null>(null);
   const [editCalendarName, setEditCalendarName] = useState('');
   const [editCalendarUrl, setEditCalendarUrl] = useState('');
 
@@ -291,6 +294,33 @@ export function InventoryPricingAdmin({
 
     const synced = result.data?.synced ?? 0;
     setSyncMessage(`Calendar synced. Imported ${synced} blocked ranges.`);
+    router.refresh();
+  };
+
+  const onDeleteCalendar = async (calendarId: string) => {
+    setDeletingCalendar(true);
+    setError(null);
+    setSyncMessage(null);
+
+    const result = await deletePropertyIcalCalendar(calendarId);
+    setDeletingCalendar(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error deleting iCal calendar');
+      return;
+    }
+
+    if (editingCalendarId === calendarId) {
+      setEditingCalendarId(null);
+      setEditCalendarName('');
+      setEditCalendarUrl('');
+    }
+
+    if (confirmDeleteCalendarId === calendarId) {
+      setConfirmDeleteCalendarId(null);
+    }
+
+    setSyncMessage('Calendar unlinked successfully');
     router.refresh();
   };
 
@@ -607,7 +637,41 @@ export function InventoryPricingAdmin({
                             >
                               Editar
                             </button>
+                            <button
+                              type="button"
+                              className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              disabled={deletingCalendar}
+                              onClick={() => setConfirmDeleteCalendarId(calendar.id)}
+                            >
+                              {deletingCalendar ? 'Desvinculando...' : 'Desvincular'}
+                            </button>
                           </div>
+
+                          {confirmDeleteCalendarId === calendar.id && (
+                            <div className="rounded border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+                              <p>
+                                ¿Seguro que deseas desvincular este calendario? Se eliminarán también sus bloqueos importados.
+                              </p>
+                              <div className="mt-2 flex gap-2">
+                                <button
+                                  type="button"
+                                  className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                                  disabled={deletingCalendar}
+                                  onClick={() => onDeleteCalendar(calendar.id)}
+                                >
+                                  {deletingCalendar ? 'Desvinculando...' : 'Confirmar desvincular'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                                  disabled={deletingCalendar}
+                                  onClick={() => setConfirmDeleteCalendarId(null)}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
