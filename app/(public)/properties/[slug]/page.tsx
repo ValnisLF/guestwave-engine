@@ -7,10 +7,16 @@ import { Metadata } from 'next';
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
+  const { slug } = await params;
+
+  if (!slug) {
+    return { title: 'Property Not Found' };
+  }
+
   const property = await prisma.property.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
   });
 
   if (!property) return { title: 'Property Not Found' };
@@ -24,11 +30,17 @@ export async function generateMetadata({
 export default async function PropertyDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
+
+  if (!slug) {
+    notFound();
+  }
+
   // Fetch property with all related data
   const property = await prisma.property.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       seasonRates: {
         orderBy: { startDate: 'asc' },
