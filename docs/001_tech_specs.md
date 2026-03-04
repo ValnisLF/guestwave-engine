@@ -14,6 +14,11 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **Emails:** Resend / SendGrid.
 - **IA:** OpenAI SDK (GPT-4o) para RAG de turismo y extracción de datos de DNI (Vision).
 - **Validación:** Zod (Compartido entre Client y Server).
+- **ORM:** Prisma 6.x (PostgreSQL) (Compatible con Node.js 21).
+- **Protocolo:** Uso de `library` o `binary` según estabilidad en Node 21.
+- **Workflow:** Prisma Client optimizado para el motor de Rust de la v6.
+- **TDD Integration:** Uso de un Schema de validación con Zod integrado mediante `zod-prisma-types` para asegurar que los datos del frontend coinciden con la DB.
+- **Features:** Uso de TypedSQL para consultas de disponibilidad y Middleware nativo para RLS de Supabase.
 
 ## 🚀 Next.js 16.1.6 Specifics
 - **Form Actions:** Uso de `useActionState` para formularios de reserva y admin (sustituye a `useFormState`).

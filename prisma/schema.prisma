@@ -1,0 +1,112 @@
+// schema.prisma – Prisma 6 Schema para GuestWave Engine
+// Ejecuta `npx prisma db push` tras colocar tu DATABASE_URL en .env.local
+// Los enums se exportan automáticamente desde @prisma/client en Server Actions
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/////////////////////////////////////////
+// Enums exportables para Server Actions
+// Importa: import { BookingStatus, BlockedSource, UserRole } from "@prisma/client"
+/////////////////////////////////////////
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum BlockedSource {
+  ICAL
+  MANUAL
+  BOOKING
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+/////////////////////////////////////////
+// models
+/////////////////////////////////////////
+
+model Property {
+  id                String        @id @default(uuid()) @db.Uuid
+  name              String
+  slug              String        @unique
+  description       String?
+  amenities         Json
+  basePrice         Decimal       @db.Decimal(12,2)
+  cleaningFee       Decimal       @db.Decimal(12,2)    // nueva prima
+  depositPercentage Int
+  icalUrlIn         String?       // URL iCal externa
+  seasonRates       SeasonRate[]
+  bookings          Booking[]
+  blockedDates      BlockedDate[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model SeasonRate {
+  id              String   @id @default(uuid()) @db.Uuid
+  property        Property @relation(fields: [propertyId], references: [id])
+  propertyId      String   @db.Uuid
+  startDate       DateTime
+  endDate         DateTime
+  priceMultiplier Decimal  @db.Decimal(5,4)
+  fixedPrice      Decimal? @db.Decimal(12,2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([propertyId])
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  property        Property      @relation(fields: [propertyId], references: [id])
+  propertyId      String        @db.Uuid
+  status          BookingStatus
+  checkIn         DateTime
+  checkOut        DateTime
+  totalPrice      Decimal       @db.Decimal(12,2)
+  depositAmount   Decimal       @db.Decimal(12,2)
+  guestEmail      String?
+  guestToken      String        @default(uuid())
+  stripeSessionId String        @unique
+  blockedDates    BlockedDate[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([propertyId])
+}
+
+model BlockedDate {
+  id          String        @id @default(uuid()) @db.Uuid
+  property    Property      @relation(fields: [propertyId], references: [id])
+  propertyId  String        @db.Uuid
+  startDate   DateTime
+  endDate     DateTime
+  source      BlockedSource
+  booking     Booking?      @relation(fields: [bookingId], references: [id])
+  bookingId   String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([propertyId])
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  role      UserRole @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
