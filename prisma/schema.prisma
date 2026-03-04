@@ -55,11 +55,26 @@ model Property {
   minimumStay       Int           @default(1)
   depositPercentage Int
   icalUrlIn         String?       // URL iCal externa
+  icalCalendars     PropertyIcalCalendar[]
   seasonRates       SeasonRate[]
   bookings          Booking[]
   blockedDates      BlockedDate[]
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+}
+
+model PropertyIcalCalendar {
+  id            String      @id @default(uuid()) @db.Uuid
+  property      Property    @relation(fields: [propertyId], references: [id])
+  propertyId    String      @db.Uuid
+  name          String
+  icalUrl       String
+  lastSyncedAt  DateTime?
+  blockedDates  BlockedDate[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([propertyId])
 }
 
 model SeasonRate {
@@ -104,12 +119,15 @@ model BlockedDate {
   startDate   DateTime
   endDate     DateTime
   source      BlockedSource
+  icalCalendar   PropertyIcalCalendar? @relation(fields: [icalCalendarId], references: [id])
+  icalCalendarId String?      @db.Uuid
   booking     Booking?      @relation(fields: [bookingId], references: [id])
   bookingId   String?       @db.Uuid
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   @@index([propertyId])
+  @@index([icalCalendarId])
 }
 
 model User {

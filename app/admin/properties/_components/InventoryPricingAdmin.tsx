@@ -4,10 +4,13 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createProperty,
+  createPropertyIcalCalendar,
   createSeasonRate,
   deleteSeasonRate,
   syncAllCalendars,
+  syncPropertyIcalCalendarAction,
   syncPropertyCalendar,
+  updatePropertyIcalCalendar,
 } from '../_actions';
 
 type SeasonRateView = {
@@ -32,6 +35,12 @@ type PropertyView = {
   minimumStay: number;
   depositPercentage: number;
   seasonRates: SeasonRateView[];
+  icalCalendars: {
+    id: string;
+    name: string;
+    icalUrl: string;
+    lastSyncedAt: string | null;
+  }[];
 };
 
 const AMENITIES_CATALOG = [
@@ -67,8 +76,13 @@ export function InventoryPricingAdmin({
   const [savingProperty, setSavingProperty] = useState(false);
   const [savingSeason, setSavingSeason] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [savingCalendar, setSavingCalendar] = useState(false);
+  const [updatingCalendar, setUpdatingCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [editingCalendarId, setEditingCalendarId] = useState<string | null>(null);
+  const [editCalendarName, setEditCalendarName] = useState('');
+  const [editCalendarUrl, setEditCalendarUrl] = useState('');
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -92,6 +106,8 @@ export function InventoryPricingAdmin({
   const [seasonMultiplier, setSeasonMultiplier] = useState('1');
   const [seasonPaymentMode, setSeasonPaymentMode] = useState<'FULL' | 'DEPOSIT'>('DEPOSIT');
   const [seasonDepositPercentage, setSeasonDepositPercentage] = useState('30');
+  const [newCalendarNameByProperty, setNewCalendarNameByProperty] = useState<Record<string, string>>({});
+  const [newCalendarUrlByProperty, setNewCalendarUrlByProperty] = useState<Record<string, string>>({});
 
   const properties = useMemo(() => initialProperties, [initialProperties]);
 
@@ -104,6 +120,15 @@ export function InventoryPricingAdmin({
       .split(/[\n,]/)
       .map((item) => item.trim())
       .filter(Boolean);
+
+  const isValidIcalUrl = (value: string) => {
+    try {
+      const url = new URL(value.trim());
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
 
   const onCreateProperty = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -192,7 +217,80 @@ export function InventoryPricingAdmin({
     }
 
     const synced = result.data?.synced ?? 0;
-    setSyncMessage(`iCal synced. Imported ${synced} blocked ranges.`);
+    setSyncMessage(`iCal synced for property. Imported ${synced} blocked ranges.`);
+    router.refresh();
+  };
+
+  const onAddCalendar = async (propertyId: string) => {
+    const name = (newCalendarNameByProperty[propertyId] ?? '').trim();
+    const icalUrl = (newCalendarUrlByProperty[propertyId] ?? '').trim();
+
+    if (!name || !icalUrl) return;
+
+    setSavingCalendar(true);
+    setError(null);
+
+    const result = await createPropertyIcalCalendar({ propertyId, name, icalUrl });
+    setSavingCalendar(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error adding iCal calendar');
+      return;
+    }
+
+    setNewCalendarNameByProperty((prev) => ({ ...prev, [propertyId]: '' }));
+    setNewCalendarUrlByProperty((prev) => ({ ...prev, [propertyId]: '' }));
+    setSyncMessage('Calendar linked successfully');
+    router.refresh();
+  };
+
+  const onStartEditCalendar = (calendar: { id: string; name: string; icalUrl: string }) => {
+    setEditingCalendarId(calendar.id);
+    setEditCalendarName(calendar.name);
+    setEditCalendarUrl(calendar.icalUrl);
+  };
+
+  const onSaveEditCalendar = async () => {
+    if (!editingCalendarId) return;
+
+    setUpdatingCalendar(true);
+    setError(null);
+
+    const result = await updatePropertyIcalCalendar({
+      calendarId: editingCalendarId,
+      name: editCalendarName,
+      icalUrl: editCalendarUrl,
+    });
+
+    setUpdatingCalendar(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error updating iCal calendar');
+      return;
+    }
+
+    setEditingCalendarId(null);
+    setEditCalendarName('');
+    setEditCalendarUrl('');
+    setSyncMessage('Calendar updated successfully');
+    router.refresh();
+  };
+
+  const onSyncCalendar = async (calendarId: string) => {
+    setSyncing(true);
+    setError(null);
+    setSyncMessage(null);
+
+    const result = await syncPropertyIcalCalendarAction(calendarId);
+    setSyncing(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error syncing iCal calendar');
+      return;
+    }
+
+    const synced = result.data?.synced ?? 0;
+    setSyncMessage(`Calendar synced. Imported ${synced} blocked ranges.`);
     router.refresh();
   };
 
@@ -431,14 +529,140 @@ export function InventoryPricingAdmin({
               <p className="text-sm text-slate-600">
                 Min stay: {property.minimumStay} · Limpieza: ${property.cleaningFee} · Depósito: {property.depositPercentage}%
               </p>
-              <div className="mt-2">
+
+              <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <h4 className="text-base font-semibold text-slate-900">Vincular calendarios</h4>
+
+                <div className="mt-3 space-y-3">
+                  {property.icalCalendars.length === 0 && (
+                    <p className="text-sm text-slate-500">No hay calendarios vinculados</p>
+                  )}
+
+                  {property.icalCalendars.map((calendar) => (
+                    <div key={calendar.id} className="rounded border border-slate-200 bg-white p-3">
+                      {editingCalendarId === calendar.id ? (
+                        <div className="space-y-2">
+                          <input
+                            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                            value={editCalendarName}
+                            onChange={(e) => setEditCalendarName(e.target.value)}
+                            placeholder="Nombre del calendario"
+                          />
+                          <input
+                            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                            value={editCalendarUrl}
+                            onChange={(e) => setEditCalendarUrl(e.target.value)}
+                            placeholder="https://.../calendar.ics"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={onSaveEditCalendar}
+                              disabled={
+                                updatingCalendar ||
+                                !editCalendarName.trim() ||
+                                !editCalendarUrl.trim() ||
+                                !isValidIcalUrl(editCalendarUrl)
+                              }
+                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              {updatingCalendar ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCalendarId(null);
+                                setEditCalendarName('');
+                                setEditCalendarUrl('');
+                              }}
+                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="text-sm font-semibold text-slate-900">{calendar.name}</div>
+                          <div className="text-xs text-slate-500 break-all">{calendar.icalUrl}</div>
+                          <div className="text-xs text-slate-600">
+                            Última sincronización:{' '}
+                            {calendar.lastSyncedAt
+                              ? new Date(calendar.lastSyncedAt).toLocaleString()
+                              : 'Nunca'}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              disabled={syncing}
+                              onClick={() => onSyncCalendar(calendar.id)}
+                            >
+                              {syncing ? 'Actualizando...' : 'Actualizar'}
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                              onClick={() => onStartEditCalendar(calendar)}
+                            >
+                              Editar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-2 md:grid-cols-3">
+                  <input
+                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-1"
+                    placeholder="Nombre del calendario"
+                    value={newCalendarNameByProperty[property.id] ?? ''}
+                    onChange={(e) =>
+                      setNewCalendarNameByProperty((prev) => ({
+                        ...prev,
+                        [property.id]: e.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                    placeholder="https://.../calendar.ics"
+                    value={newCalendarUrlByProperty[property.id] ?? ''}
+                    onChange={(e) =>
+                      setNewCalendarUrlByProperty((prev) => ({
+                        ...prev,
+                        [property.id]: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    disabled={
+                      savingCalendar ||
+                      !(newCalendarNameByProperty[property.id] ?? '').trim() ||
+                      !(newCalendarUrlByProperty[property.id] ?? '').trim() ||
+                      !isValidIcalUrl(newCalendarUrlByProperty[property.id] ?? '')
+                    }
+                    onClick={() => onAddCalendar(property.id)}
+                  >
+                    {savingCalendar ? 'Añadiendo...' : 'Añadir el calendario'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3">
                 <button
                   type="button"
                   className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                   disabled={syncing}
                   onClick={() => onSyncProperty(property.id)}
                 >
-                  Sync iCal for this property
+                  Sincronizar todos los calendarios de esta propiedad
                 </button>
               </div>
 

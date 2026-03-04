@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findUniqueMock = vi.fn();
 const findManyMock = vi.fn();
+const calendarFindUniqueMock = vi.fn();
+const calendarUpdateMock = vi.fn();
 const deleteManyMock = vi.fn();
 const createManyMock = vi.fn();
 
@@ -10,11 +12,17 @@ const prismaMock = {
     findUnique: findUniqueMock,
     findMany: findManyMock,
   },
+  propertyIcalCalendar: {
+    findUnique: calendarFindUniqueMock,
+  },
   $transaction: vi.fn(async (callback: any) =>
     callback({
       blockedDate: {
         deleteMany: deleteManyMock,
         createMany: createManyMock,
+      },
+      propertyIcalCalendar: {
+        update: calendarUpdateMock,
       },
     })
   ),
@@ -28,7 +36,7 @@ describe('ical sync infrastructure', () => {
   });
 
   it('returns skipped when property has no icalUrlIn', async () => {
-    findUniqueMock.mockResolvedValue({ id: 'property_1', icalUrlIn: null });
+    findUniqueMock.mockResolvedValue({ id: 'property_1', icalUrlIn: null, icalCalendars: [] });
 
     const { syncPropertyIcal } = await import('@/src/infrastructure/ical/sync');
     const result = await syncPropertyIcal('property_1');
@@ -37,16 +45,18 @@ describe('ical sync infrastructure', () => {
       propertyId: 'property_1',
       synced: 0,
       skipped: true,
-      reason: 'No icalUrlIn configured',
+      reason: 'No iCal calendars configured',
     });
     expect(deleteManyMock).not.toHaveBeenCalled();
     expect(createManyMock).not.toHaveBeenCalled();
   });
 
   it('imports VEVENT ranges and rewrites ICAL blocked dates', async () => {
-    findUniqueMock.mockResolvedValue({
-      id: 'property_1',
-      icalUrlIn: 'https://example.com/calendar.ics',
+    calendarFindUniqueMock.mockResolvedValue({
+      id: 'calendar_1',
+      propertyId: 'property_1',
+      name: 'Booking',
+      icalUrl: 'https://example.com/calendar.ics',
     });
 
     vi.stubGlobal(
@@ -64,10 +74,11 @@ END:VCALENDAR`,
       })
     );
 
-    const { syncPropertyIcal } = await import('@/src/infrastructure/ical/sync');
-    const result = await syncPropertyIcal('property_1');
+    const { syncPropertyIcalCalendar } = await import('@/src/infrastructure/ical/sync');
+    const result = await syncPropertyIcalCalendar('calendar_1');
 
     expect(result.propertyId).toBe('property_1');
+    expect(result.calendarId).toBe('calendar_1');
     expect(result.synced).toBe(1);
     expect(result.skipped).toBe(false);
 
@@ -75,6 +86,7 @@ END:VCALENDAR`,
       where: {
         propertyId: 'property_1',
         source: 'ICAL',
+        icalCalendarId: 'calendar_1',
       },
     });
 
@@ -85,21 +97,47 @@ END:VCALENDAR`,
       expect.objectContaining({
         propertyId: 'property_1',
         source: 'ICAL',
+        icalCalendarId: 'calendar_1',
       })
     );
+
+    expect(calendarUpdateMock).toHaveBeenCalledOnce();
 
     vi.unstubAllGlobals();
   });
 
   it('aggregates syncAll results and keeps failures per property', async () => {
-    findManyMock.mockResolvedValue([{ id: 'ok_1' }, { id: 'err_1' }]);
+    findManyMock.mockResolvedValue([
+      { id: 'ok_1', icalUrlIn: null, icalCalendars: [{ id: 'cal_ok_1' }] },
+      { id: 'err_1', icalUrlIn: null, icalCalendars: [{ id: 'cal_err_1' }] },
+    ]);
 
-    const sequence = [
-      { id: 'ok_1', icalUrlIn: null },
+    const calendarSequence = [
+      {
+        id: 'cal_ok_1',
+        propertyId: 'ok_1',
+        name: 'Ok',
+        icalUrl: 'https://example.com/ok.ics',
+      },
       null,
     ];
 
-    findUniqueMock.mockImplementation(async () => sequence.shift());
+    calendarFindUniqueMock.mockImplementation(async () => calendarSequence.shift());
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART:20260510T120000Z
+DTEND:20260512T120000Z
+SUMMARY:Reserved
+END:VEVENT
+END:VCALENDAR`,
+      })
+    );
 
     const { syncAllIcalInputs } = await import('@/src/infrastructure/ical/sync');
     const results = await syncAllIcalInputs();
@@ -113,8 +151,10 @@ END:VCALENDAR`,
     expect(results[1]).toEqual(
       expect.objectContaining({
         propertyId: 'err_1',
-        error: 'Property not found',
+        synced: 0,
       })
     );
+
+    vi.unstubAllGlobals();
   });
 });

@@ -7,6 +7,9 @@ export default async function AdminPropertiesPage() {
       seasonRates: {
         orderBy: { startDate: 'asc' },
       },
+      icalCalendars: {
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -33,6 +36,12 @@ export default async function AdminPropertiesPage() {
       fixedPrice: rate.fixedPrice ? Number(rate.fixedPrice) : null,
       paymentMode: rate.paymentMode,
       depositPercentage: rate.depositPercentage,
+    })),
+    icalCalendars: property.icalCalendars.map((calendar) => ({
+      id: calendar.id,
+      name: calendar.name,
+      icalUrl: calendar.icalUrl,
+      lastSyncedAt: calendar.lastSyncedAt ? calendar.lastSyncedAt.toISOString() : null,
     })),
   }));
 

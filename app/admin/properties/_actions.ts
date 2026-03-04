@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@infra/prisma';
-import { syncAllIcalInputs, syncPropertyIcal } from '@infra/ical/sync';
+import { syncAllIcalInputs, syncPropertyIcal, syncPropertyIcalCalendar } from '@infra/ical/sync';
 import { PropertyService } from '@features/properties/property.service';
 import { createPropertySchema, updatePropertySchema } from '@/lib/schemas/property';
 import { ZodError } from 'zod';
@@ -57,6 +57,27 @@ function toPlainSeasonRate(rate: any) {
     depositPercentage: rate.depositPercentage,
     createdAt: rate.createdAt instanceof Date ? rate.createdAt.toISOString() : rate.createdAt,
     updatedAt: rate.updatedAt instanceof Date ? rate.updatedAt.toISOString() : rate.updatedAt,
+  };
+}
+
+function toPlainIcalCalendar(calendar: any) {
+  return {
+    id: calendar.id,
+    propertyId: calendar.propertyId,
+    name: calendar.name,
+    icalUrl: calendar.icalUrl,
+    lastSyncedAt:
+      calendar.lastSyncedAt instanceof Date
+        ? calendar.lastSyncedAt.toISOString()
+        : calendar.lastSyncedAt,
+    createdAt:
+      calendar.createdAt instanceof Date
+        ? calendar.createdAt.toISOString()
+        : calendar.createdAt,
+    updatedAt:
+      calendar.updatedAt instanceof Date
+        ? calendar.updatedAt.toISOString()
+        : calendar.updatedAt,
   };
 }
 
@@ -412,5 +433,93 @@ export async function syncAllCalendars(): Promise<PropertyResponse> {
   } catch (error) {
     console.error('syncAllCalendars error:', error);
     return { success: false, error: 'Error syncing iCal calendars' };
+  }
+}
+
+export type CreatePropertyIcalCalendarInput = {
+  propertyId: string;
+  name: string;
+  icalUrl: string;
+};
+
+export async function createPropertyIcalCalendar(
+  input: CreatePropertyIcalCalendarInput
+): Promise<PropertyResponse> {
+  try {
+    const name = input.name.trim();
+    const icalUrl = input.icalUrl.trim();
+
+    if (!name || !icalUrl) {
+      return { success: false, error: 'Name and iCal URL are required' };
+    }
+
+    try {
+      new URL(icalUrl);
+    } catch {
+      return { success: false, error: 'Invalid iCal URL' };
+    }
+
+    const property = await prisma.property.findUnique({ where: { id: input.propertyId } });
+    if (!property) {
+      return { success: false, error: 'Property not found' };
+    }
+
+    const created = await prisma.propertyIcalCalendar.create({
+      data: {
+        propertyId: input.propertyId,
+        name,
+        icalUrl,
+      },
+    });
+
+    return { success: true, data: toPlainIcalCalendar(created) };
+  } catch (error) {
+    console.error('createPropertyIcalCalendar error:', error);
+    return { success: false, error: 'Error creating iCal calendar' };
+  }
+}
+
+export type UpdatePropertyIcalCalendarInput = {
+  calendarId: string;
+  name: string;
+  icalUrl: string;
+};
+
+export async function updatePropertyIcalCalendar(
+  input: UpdatePropertyIcalCalendarInput
+): Promise<PropertyResponse> {
+  try {
+    const name = input.name.trim();
+    const icalUrl = input.icalUrl.trim();
+
+    if (!name || !icalUrl) {
+      return { success: false, error: 'Name and iCal URL are required' };
+    }
+
+    try {
+      new URL(icalUrl);
+    } catch {
+      return { success: false, error: 'Invalid iCal URL' };
+    }
+
+    const updated = await prisma.propertyIcalCalendar.update({
+      where: { id: input.calendarId },
+      data: { name, icalUrl },
+    });
+
+    return { success: true, data: toPlainIcalCalendar(updated) };
+  } catch (error) {
+    console.error('updatePropertyIcalCalendar error:', error);
+    return { success: false, error: 'Error updating iCal calendar' };
+  }
+}
+
+export async function syncPropertyIcalCalendarAction(calendarId: string): Promise<PropertyResponse> {
+  try {
+    const result = await syncPropertyIcalCalendar(calendarId);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('syncPropertyIcalCalendarAction error:', error);
+    return { success: false, error: 'Error syncing iCal calendar' };
   }
 }
