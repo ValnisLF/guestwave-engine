@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
     "incremental": true,
     "plugins": [
       {
@@ -19,9 +20,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@infra/*": ["src/infrastructure/*"]
     },
-    "types": ["vitest/globals","node"]
+    "types": ["vitest/globals","node","@testing-library/jest-dom"]
   },
   "include": [
     "next-env.d.ts",
@@ -31,5 +35,14 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "tests",
+    "vitest.setup.ts",
+    "vitest-mocks"
+  ]
 }

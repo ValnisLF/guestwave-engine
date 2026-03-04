@@ -6,22 +6,22 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      'html-encoding-sniffer': resolve(__dirname, './vitest-mocks/html-encoding-sniffer.ts'),
+      '@': resolve(__dirname),
+      'html-encoding-sniffer': resolve(__dirname, 'vitest-mocks/html-encoding-sniffer.ts'),
     },
   },
   test: {
-    environment: 'jsdom',
+    // Use node environment for pure logic tests; jsdom causes ESM/CJS conflicts with html-encoding-sniffer
+    environment: 'node',
     globals: true,
-    setupFiles: './vitest.setup.ts',
-    include: ['**/*.{test,spec}.{ts,tsx}'],
+    // Only run tests in src/ and tests/ folders, not from node_modules dependencies
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./vitest.setup.ts'],
     coverage: {
-      provider: 'c8',
+      provider: 'v8',
       reporter: ['text', 'lcov'],
       exclude: ['node_modules/', '.next/'],
     },
-    deps: {
-      inline: ['@testing-library/react','html-encoding-sniffer','@exodus/bytes'],
-    },
-    threads: false,
   },
+
 });

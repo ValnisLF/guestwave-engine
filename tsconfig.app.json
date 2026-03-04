@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  
+  /*
+   * The application-specific tsconfig overrides the main config and is
+   * consumed by `pnpm build`/`next build`.  We explicitly exclude test
+   * artifacts so that the TypeScript compiler doesn’t try to typecheck
+   * `*.test.ts`/`*.test.tsx` files which reference Vitest globals.
+   */
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.setup.ts",
+    "tests",
+    "vitest-mocks"
+  ]
+}
