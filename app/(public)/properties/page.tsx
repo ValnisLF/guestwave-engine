@@ -21,11 +21,11 @@ export default async function PropertiesPage() {
 
   if (properties.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+      <div className="text-center py-12 text-slate-900">
+        <h1 className="text-4xl font-bold text-slate-900 mb-4">
           No properties available
         </h1>
-        <p className="text-gray-600 text-lg">
+        <p className="text-slate-600 text-lg">
           Check back soon for amazing vacation rentals
         </p>
       </div>
@@ -33,12 +33,12 @@ export default async function PropertiesPage() {
   }
 
   return (
-    <div className="py-12">
+    <div className="py-12 text-slate-900">
       <div className="mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-4xl font-bold text-slate-900 mb-2">
           Discover Our Properties
         </h1>
-        <p className="text-gray-600 text-lg">
+        <p className="text-slate-600 text-lg">
           Find the perfect place for your next getaway
         </p>
       </div>

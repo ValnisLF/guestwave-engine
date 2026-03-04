@@ -4,6 +4,7 @@ import { isDateRangeAvailable } from '@features/availability/availability';
 import { calculatePrice } from '@features/pricing/pricing';
 import { prisma } from '@infra/prisma';
 import { type SeasonRate } from '@features/pricing/types';
+import { createStripeCheckoutSession } from '@infra/stripe';
 
 export type CheckAvailabilityInput = {
   propertyId: string;
@@ -104,6 +105,9 @@ export type EstimatePriceResponse = {
   success: boolean;
   total?: number;
   deposit?: number;
+  amountDueNow?: number;
+  paymentMode?: 'FULL' | 'DEPOSIT';
+  minimumStay?: number;
   perNightEffective?: number;
   error?: string;
 };
@@ -149,6 +153,14 @@ export async function estimatePrice(
       (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
     );
 
+    if (nights < property.minimumStay) {
+      return {
+        success: false,
+        minimumStay: property.minimumStay,
+        error: `Minimum stay for this property is ${property.minimumStay} night(s)`,
+      };
+    }
+
     // Convert seasonRates to domain format, converting Decimal to number
     const seasonRates: SeasonRate[] = property.seasonRates.map((sr) => ({
       id: sr.id,
@@ -156,6 +168,8 @@ export async function estimatePrice(
       endDate: sr.endDate,
       priceMultiplier: Number(sr.priceMultiplier),
       fixedPrice: sr.fixedPrice ? Number(sr.fixedPrice) : null,
+      paymentMode: sr.paymentMode,
+      depositPercentage: sr.depositPercentage,
     }));
 
     // Calculate price using domain logic
@@ -173,6 +187,9 @@ export async function estimatePrice(
       success: true,
       total: pricingResult.total,
       deposit: pricingResult.deposit,
+      amountDueNow: pricingResult.amountDueNow,
+      paymentMode: pricingResult.paymentMode,
+      minimumStay: property.minimumStay,
       perNightEffective: pricingResult.perNightEffective,
     };
   } catch (error) {
@@ -197,6 +214,15 @@ export type CreateBookingResponse = {
   bookingId?: string;
   error?: string;
   stripeSessionId?: string;
+  checkoutUrl?: string;
+};
+
+export type CreateCheckoutSessionInput = {
+  propertyId: string;
+  startDate: Date;
+  endDate: Date;
+  guestEmail: string;
+  guestName: string;
 };
 
 /**
@@ -206,8 +232,18 @@ export type CreateBookingResponse = {
 export async function createBooking(
   input: CreateBookingInput
 ): Promise<CreateBookingResponse> {
+  return createCheckoutSession(input);
+}
+
+/**
+ * Creates pending booking + Stripe Checkout Session
+ */
+export async function createCheckoutSession(
+  input: CreateCheckoutSessionInput
+): Promise<CreateBookingResponse> {
   try {
     const { propertyId, startDate, endDate, guestEmail, guestName } = input;
+    const isE2EMockCheckout = process.env.E2E_MOCK_CHECKOUT === '1';
 
     // Check availability first
     const availCheck = await checkAvailability({
@@ -237,6 +273,18 @@ export async function createBooking(
       };
     }
 
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { name: true, slug: true },
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
     // Create booking record (PENDING status)
     const booking = await prisma.booking.create({
       data: {
@@ -246,25 +294,66 @@ export async function createBooking(
         status: 'PENDING',
         totalPrice: priceEst.total || 0,
         depositAmount: priceEst.deposit || 0,
+        guestEmail,
         guestToken: Math.random().toString(36).substring(2, 12),
-        // TODO: Update to real Stripe session ID after checkout
         stripeSessionId: `pending_${Math.random().toString(36).substring(2, 12)}`,
       },
     });
 
-    // TODO: Create Stripe checkout session and redirect
-    // For MVP, just return booking ID
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+    if (isE2EMockCheckout) {
+      if (guestEmail.includes('fail')) {
+        return {
+          success: false,
+          error: 'Mock checkout failure',
+        };
+      }
+
+      const mockSessionId = `cs_mock_${Math.random().toString(36).substring(2, 12)}`;
+
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          stripeSessionId: mockSessionId,
+        },
+      });
+
+      return {
+        success: true,
+        bookingId: booking.id,
+        stripeSessionId: mockSessionId,
+        checkoutUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingId=${booking.id}`,
+      };
+    }
+
+    const stripeSession = await createStripeCheckoutSession({
+      bookingId: booking.id,
+      propertyName: property.name,
+      guestEmail,
+      amountDueNow: priceEst.amountDueNow ?? priceEst.total,
+      successUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingId=${booking.id}`,
+      cancelUrl: `${appUrl}/properties/${property.slug}?checkout=cancelled`,
+    });
+
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        stripeSessionId: stripeSession.id,
+      },
+    });
 
     return {
       success: true,
       bookingId: booking.id,
-      error: undefined,
+      stripeSessionId: stripeSession.id,
+      checkoutUrl: stripeSession.url ?? undefined,
     };
   } catch (error) {
-    console.error('createBooking error:', error);
+    console.error('createCheckoutSession error:', error);
     return {
       success: false,
-      error: 'Error creating booking',
+      error: 'Error creating checkout session',
     };
   }
 }

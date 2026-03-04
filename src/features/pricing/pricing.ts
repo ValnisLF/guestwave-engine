@@ -71,6 +71,8 @@ export function calculatePrice(input: PricingInput): PricingResult {
   const nights = Math.max(0, Math.floor(input.nights));
   const cleaning = input.cleaningFee ?? 0;
   const depositPct = input.depositPct ?? 0;
+  let effectivePaymentMode: 'FULL' | 'DEPOSIT' = input.paymentMode ?? (depositPct > 0 ? 'DEPOSIT' : 'FULL');
+  let effectiveDepositPct = depositPct;
 
   let subtotal = 0;
   let perNightEffective = 0;
@@ -94,6 +96,17 @@ export function calculatePrice(input: PricingInput): PricingResult {
         const nightlyRate = getNightlyRate(base, rate);
         subtotal += nightlyRate * nightsInSeason;
       }
+
+      const dominantSeason = [...matchingSeasons].sort(
+        (a, b) => b.nightsInSeason - a.nightsInSeason,
+      )[0]?.rate;
+      if (dominantSeason?.paymentMode) {
+        effectivePaymentMode = dominantSeason.paymentMode;
+      }
+      if (dominantSeason?.depositPercentage !== null && dominantSeason?.depositPercentage !== undefined) {
+        effectiveDepositPct = dominantSeason.depositPercentage / 100;
+      }
+
       perNightEffective = nights > 0 ? subtotal / nights : 0;
     } else {
       // No matching seasons, use basePrice as fallback
@@ -108,12 +121,15 @@ export function calculatePrice(input: PricingInput): PricingResult {
   }
 
   const total = Math.round((subtotal + cleaning) * 100) / 100;
-  const deposit = Math.round(total * depositPct * 100) / 100;
+  const deposit = Math.round(total * effectiveDepositPct * 100) / 100;
+  const amountDueNow = effectivePaymentMode === 'FULL' ? total : deposit;
   perNightEffective = Math.round(perNightEffective * 100) / 100;
 
   return {
     total,
     deposit,
+    amountDueNow,
+    paymentMode: effectivePaymentMode,
     perNightEffective,
     breakdown: {
       nights,

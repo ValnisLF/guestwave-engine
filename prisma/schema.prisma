@@ -34,6 +34,11 @@ enum UserRole {
   EDITOR
 }
 
+enum PaymentMode {
+  FULL
+  DEPOSIT
+}
+
 /////////////////////////////////////////
 // models
 /////////////////////////////////////////
@@ -43,9 +48,11 @@ model Property {
   name              String
   slug              String        @unique
   description       String?
+  imageUrls         String[]      @default([])
   amenities         Json
   basePrice         Decimal       @db.Decimal(12,2)
   cleaningFee       Decimal       @db.Decimal(12,2)    // nueva prima
+  minimumStay       Int           @default(1)
   depositPercentage Int
   icalUrlIn         String?       // URL iCal externa
   seasonRates       SeasonRate[]
@@ -63,6 +70,8 @@ model SeasonRate {
   endDate         DateTime
   priceMultiplier Decimal  @db.Decimal(5,4)
   fixedPrice      Decimal? @db.Decimal(12,2)
+  paymentMode     PaymentMode?
+  depositPercentage Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

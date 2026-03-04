@@ -4,6 +4,8 @@ export type SeasonRate = {
   endDate: Date;
   priceMultiplier?: number;
   fixedPrice?: number | null;
+  paymentMode?: 'FULL' | 'DEPOSIT' | null;
+  depositPercentage?: number | null;
 };
 
 export type DailyRate = {
@@ -19,6 +21,7 @@ export type PricingInput = {
   cleaningFee?: number;
   seasonMultiplier?: number; // default 1, used if no seasonRates
   depositPct?: number; // 0..1
+  paymentMode?: 'FULL' | 'DEPOSIT';
   seasonRates?: SeasonRate[]; // optional seasonal rates
   startDate?: Date; // required if seasonRates provided
   endDate?: Date; // required if seasonRates provided
@@ -27,6 +30,8 @@ export type PricingInput = {
 export type PricingResult = {
   total: number;
   deposit: number;
+  amountDueNow: number;
+  paymentMode: 'FULL' | 'DEPOSIT';
   perNightEffective: number;
   breakdown?: {
     nights: number;

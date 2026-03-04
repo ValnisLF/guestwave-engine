@@ -16,11 +16,23 @@ export function PropertyCard({
       )
     : Number(property.basePrice);
 
+  const firstImage = property.imageUrls?.[0];
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-      {/* Image Placeholder */}
-      <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
-        <div className="text-blue-300 text-6xl">🏠</div>
+      {/* Property Image */}
+      <div className="h-48 bg-gradient-to-br from-blue-100 to-blue-50 overflow-hidden">
+        {firstImage ? (
+          <img
+            src={firstImage}
+            alt={property.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-blue-300 text-6xl">🏠</div>
+          </div>
+        )}
       </div>
 
       {/* Content */}

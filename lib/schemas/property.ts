@@ -30,11 +30,23 @@ export const createPropertySchema = z.object({
     .optional()
     .nullable(),
 
+  imageUrls: z
+    .array(z.string().url('Cada foto debe ser una URL válida'))
+    .max(20, 'No puede haber más de 20 fotos')
+    .optional()
+    .default([]),
+
   amenities: z.record(z.string(), z.boolean()).optional(),
 
   basePrice: z.number().gt(0, 'Precio base debe ser mayor a 0'),
 
   cleaningFee: z.number().gte(0, 'Prima de limpieza no puede ser negativa').default(0),
+
+  minimumStay: z
+    .number()
+    .int('Estancia mínima debe ser un número entero')
+    .min(1, 'Estancia mínima debe ser de al menos 1 noche')
+    .default(1),
 
   depositPercentage: z
     .number()
@@ -57,6 +69,30 @@ export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
  * Todos los campos son opcionales pero si se proporcionan deben pasar validación
  */
 export const updatePropertySchema = createPropertySchema
+  .omit({
+    cleaningFee: true,
+    minimumStay: true,
+    depositPercentage: true,
+    imageUrls: true,
+  })
+  .extend({
+    imageUrls: z
+      .array(z.string().url('Cada foto debe ser una URL válida'))
+      .max(20, 'No puede haber más de 20 fotos')
+      .optional(),
+    cleaningFee: z.number().gte(0, 'Prima de limpieza no puede ser negativa').optional(),
+    minimumStay: z
+      .number()
+      .int('Estancia mínima debe ser un número entero')
+      .min(1, 'Estancia mínima debe ser de al menos 1 noche')
+      .optional(),
+    depositPercentage: z
+      .number()
+      .int('Depósito debe ser un número entero')
+      .min(0, 'Depósito no puede ser menor a 0%')
+      .max(100, 'Depósito no puede ser mayor a 100%')
+      .optional(),
+  })
   .partial()
   .superRefine((data, ctx) => {
     if (Object.keys(data).length === 0) {

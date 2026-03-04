@@ -109,21 +109,21 @@ export function PropertyCalendar({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-slate-900">
       {/* Calendar */}
-      <div className="border rounded-lg p-4 bg-white">
+      <div className="border border-slate-200 rounded-lg p-4 bg-white">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-gray-900">{monthYear}</h3>
+          <h3 className="font-semibold text-slate-900">{monthYear}</h3>
           <div className="flex gap-2">
             <button
               onClick={handlePrevMonth}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-1 text-slate-700 hover:bg-slate-100 rounded"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={handleNextMonth}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-1 text-slate-700 hover:bg-slate-100 rounded"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -133,7 +133,7 @@ export function PropertyCalendar({
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-center text-xs font-semibold text-gray-600 p-2">
+            <div key={day} className="text-center text-xs font-semibold text-slate-600 p-2">
               {day}
             </div>
           ))}
@@ -147,7 +147,7 @@ export function PropertyCalendar({
 
       {/* Selected dates summary */}
       {selectedStart && (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-slate-600">
           <p>
             Check-in: {selectedStart.toLocaleDateString()}
           </p>
@@ -161,11 +161,11 @@ export function PropertyCalendar({
 
       {/* Legend */}
       <div className="flex gap-4 text-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-slate-700">
           <div className="w-4 h-4 bg-blue-100 rounded"></div>
           <span>Available</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-slate-700">
           <div className="w-4 h-4 bg-red-100 rounded"></div>
           <span>Unavailable</span>
         </div>

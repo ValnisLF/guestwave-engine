@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname),
+      '@infra': resolve(__dirname, 'src/infrastructure'),
+      '@features': resolve(__dirname, 'src/features'),
       'html-encoding-sniffer': resolve(__dirname, 'vitest-mocks/html-encoding-sniffer.ts'),
     },
   },

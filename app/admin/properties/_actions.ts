@@ -1,6 +1,7 @@
 'use server';
 
 import { prisma } from '@infra/prisma';
+import { syncAllIcalInputs, syncPropertyIcal } from '@infra/ical/sync';
 import { PropertyService } from '@features/properties/property.service';
 import { createPropertySchema, updatePropertySchema } from '@/lib/schemas/property';
 import { ZodError } from 'zod';
@@ -11,8 +12,10 @@ export type CreatePropertyInput = {
   name: string;
   slug: string;
   description?: string | null;
+  imageUrls?: string[];
   basePrice: number;
   cleaningFee?: number;
+  minimumStay?: number;
   depositPercentage?: number;
   amenities?: Record<string, boolean>;
   icalUrlIn?: string | null;
@@ -23,6 +26,39 @@ export type PropertyResponse = {
   data?: any;
   error?: string;
 };
+
+function toPlainProperty(property: any) {
+  return {
+    id: property.id,
+    name: property.name,
+    slug: property.slug,
+    description: property.description,
+    imageUrls: property.imageUrls,
+    amenities: property.amenities,
+    basePrice: Number(property.basePrice),
+    cleaningFee: Number(property.cleaningFee),
+    minimumStay: property.minimumStay,
+    depositPercentage: property.depositPercentage,
+    icalUrlIn: property.icalUrlIn,
+    createdAt: property.createdAt instanceof Date ? property.createdAt.toISOString() : property.createdAt,
+    updatedAt: property.updatedAt instanceof Date ? property.updatedAt.toISOString() : property.updatedAt,
+  };
+}
+
+function toPlainSeasonRate(rate: any) {
+  return {
+    id: rate.id,
+    propertyId: rate.propertyId,
+    startDate: rate.startDate instanceof Date ? rate.startDate.toISOString() : rate.startDate,
+    endDate: rate.endDate instanceof Date ? rate.endDate.toISOString() : rate.endDate,
+    priceMultiplier: Number(rate.priceMultiplier),
+    fixedPrice: rate.fixedPrice === null ? null : Number(rate.fixedPrice),
+    paymentMode: rate.paymentMode,
+    depositPercentage: rate.depositPercentage,
+    createdAt: rate.createdAt instanceof Date ? rate.createdAt.toISOString() : rate.createdAt,
+    updatedAt: rate.updatedAt instanceof Date ? rate.updatedAt.toISOString() : rate.updatedAt,
+  };
+}
 
 /**
  * Creates a new property for the authenticated admin user
@@ -66,8 +102,10 @@ export async function createProperty(
         name: validated.name,
         slug: validated.slug,
         description: validated.description,
+        imageUrls: validated.imageUrls ?? [],
         basePrice: validated.basePrice,
         cleaningFee: validated.cleaningFee ?? 0,
+        minimumStay: validated.minimumStay ?? 1,
         depositPercentage: validated.depositPercentage ?? 0,
         amenities: validated.amenities ?? {},
         icalUrlIn: validated.icalUrlIn,
@@ -77,7 +115,7 @@ export async function createProperty(
 
     return {
       success: true,
-      data: property,
+      data: toPlainProperty(property),
     };
   } catch (error) {
     if (error instanceof ZodError) {
@@ -164,7 +202,7 @@ export async function updateProperty(
 
     return {
       success: true,
-      data: updated,
+      data: toPlainProperty(updated),
     };
   } catch (error) {
     if (error instanceof ZodError) {
@@ -271,7 +309,10 @@ export async function getPropertyBySlug(slug: string): Promise<PropertyResponse>
 
     return {
       success: true,
-      data: property,
+      data: {
+        ...toPlainProperty(property),
+        seasonRates: property.seasonRates.map((rate) => toPlainSeasonRate(rate)),
+      },
     };
   } catch (error) {
     console.error('getPropertyBySlug error:', error);
@@ -279,5 +320,97 @@ export async function getPropertyBySlug(slug: string): Promise<PropertyResponse>
       success: false,
       error: 'Error fetching property',
     };
+  }
+}
+
+export type CreateSeasonRateInput = {
+  propertyId: string;
+  startDate: Date;
+  endDate: Date;
+  priceMultiplier?: number;
+  fixedPrice?: number | null;
+  paymentMode?: 'FULL' | 'DEPOSIT';
+  depositPercentage?: number | null;
+};
+
+export async function createSeasonRate(
+  input: CreateSeasonRateInput
+): Promise<PropertyResponse> {
+  try {
+    if (input.startDate >= input.endDate) {
+      return {
+        success: false,
+        error: 'startDate must be before endDate',
+      };
+    }
+
+    if (!input.fixedPrice && !input.priceMultiplier) {
+      return {
+        success: false,
+        error: 'Either fixedPrice or priceMultiplier is required',
+      };
+    }
+
+    if (input.paymentMode === 'DEPOSIT') {
+      if (input.depositPercentage === null || input.depositPercentage === undefined) {
+        return {
+          success: false,
+          error: 'depositPercentage is required for DEPOSIT mode',
+        };
+      }
+      if (input.depositPercentage < 0 || input.depositPercentage > 100) {
+        return {
+          success: false,
+          error: 'depositPercentage must be between 0 and 100',
+        };
+      }
+    }
+
+    const created = await prisma.seasonRate.create({
+      data: {
+        propertyId: input.propertyId,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        priceMultiplier: input.priceMultiplier ?? 1,
+        fixedPrice: input.fixedPrice,
+        paymentMode: input.paymentMode,
+        depositPercentage: input.depositPercentage,
+      },
+    });
+
+    return { success: true, data: toPlainSeasonRate(created) };
+  } catch (error) {
+    console.error('createSeasonRate error:', error);
+    return { success: false, error: 'Error creating season rate' };
+  }
+}
+
+export async function deleteSeasonRate(seasonRateId: string): Promise<PropertyResponse> {
+  try {
+    await prisma.seasonRate.delete({ where: { id: seasonRateId } });
+    return { success: true, data: { id: seasonRateId } };
+  } catch (error) {
+    console.error('deleteSeasonRate error:', error);
+    return { success: false, error: 'Error deleting season rate' };
+  }
+}
+
+export async function syncPropertyCalendar(propertyId: string): Promise<PropertyResponse> {
+  try {
+    const result = await syncPropertyIcal(propertyId);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('syncPropertyCalendar error:', error);
+    return { success: false, error: 'Error syncing iCal for property' };
+  }
+}
+
+export async function syncAllCalendars(): Promise<PropertyResponse> {
+  try {
+    const result = await syncAllIcalInputs();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('syncAllCalendars error:', error);
+    return { success: false, error: 'Error syncing iCal calendars' };
   }
 }
