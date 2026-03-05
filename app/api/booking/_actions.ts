@@ -5,6 +5,71 @@ import { calculatePrice } from '@features/pricing/pricing';
 import { prisma } from '@infra/prisma';
 import { type SeasonRate } from '@features/pricing/types';
 import { createStripeCheckoutSession } from '@infra/stripe';
+import { sendOwnerPaymentNotification } from '@infra/notifications/resend';
+
+function isMockCheckoutEnabled() {
+  return (
+    process.env.E2E_MOCK_CHECKOUT === '1' ||
+    process.env.MOCK_CHECKOUT === '1' ||
+    process.env.NEXT_PUBLIC_MOCK_CHECKOUT === '1'
+  );
+}
+
+async function confirmBookingAndBlockDates(payload: {
+  bookingId: string;
+  stripeSessionId: string;
+}) {
+  let booking = await prisma.booking.findUnique({
+    where: { id: payload.bookingId },
+  });
+
+  if (!booking) {
+    throw new Error(`Booking not found: ${payload.bookingId}`);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    booking = await tx.booking.update({
+      where: { id: payload.bookingId },
+      data: {
+        status: 'CONFIRMED',
+        stripeSessionId: payload.stripeSessionId,
+      },
+    });
+
+    const existingBlocked = await tx.blockedDate.findFirst({
+      where: { bookingId: payload.bookingId },
+      select: { id: true },
+    });
+
+    if (!existingBlocked) {
+      await tx.blockedDate.create({
+        data: {
+          propertyId: booking!.propertyId,
+          bookingId: booking!.id,
+          startDate: booking!.checkIn,
+          endDate: booking!.checkOut,
+          source: 'BOOKING',
+        },
+      });
+    }
+  });
+
+  const ownerEmail = process.env.OWNER_NOTIFICATION_EMAIL;
+  if (ownerEmail) {
+    try {
+      await sendOwnerPaymentNotification({
+        toEmail: ownerEmail,
+        bookingId: booking.id,
+        propertyId: booking.propertyId,
+        amountPaid: Number(booking.depositAmount),
+      });
+    } catch (notificationError) {
+      console.error('Owner notification error:', notificationError);
+    }
+  }
+
+  return booking;
+}
 
 export type CheckAvailabilityInput = {
   propertyId: string;
@@ -243,7 +308,7 @@ export async function createCheckoutSession(
 ): Promise<CreateBookingResponse> {
   try {
     const { propertyId, startDate, endDate, guestEmail, guestName } = input;
-    const isE2EMockCheckout = process.env.E2E_MOCK_CHECKOUT === '1';
+    const isMockCheckout = isMockCheckoutEnabled();
 
     // Check availability first
     const availCheck = await checkAvailability({
@@ -285,6 +350,13 @@ export async function createCheckoutSession(
       };
     }
 
+    if (isMockCheckout && guestEmail.includes('fail')) {
+      return {
+        success: false,
+        error: 'Mock checkout failure',
+      };
+    }
+
     // Create booking record (PENDING status)
     const booking = await prisma.booking.create({
       data: {
@@ -302,21 +374,12 @@ export async function createCheckoutSession(
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
-    if (isE2EMockCheckout) {
-      if (guestEmail.includes('fail')) {
-        return {
-          success: false,
-          error: 'Mock checkout failure',
-        };
-      }
-
+    if (isMockCheckout) {
       const mockSessionId = `cs_mock_${Math.random().toString(36).substring(2, 12)}`;
 
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          stripeSessionId: mockSessionId,
-        },
+      await confirmBookingAndBlockDates({
+        bookingId: booking.id,
+        stripeSessionId: mockSessionId,
       });
 
       return {

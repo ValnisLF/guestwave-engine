@@ -32,6 +32,7 @@ export function PricingCalculator({
   depositPercentage,
   unavailableDates,
 }: PricingCalculatorProps) {
+  const isMockCheckoutEnabled = process.env.NEXT_PUBLIC_MOCK_CHECKOUT === '1';
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [pricing, setPricing] = useState<EstimatePriceResult | null>(null);
@@ -288,11 +289,21 @@ export function PricingCalculator({
         disabled={!pricing || loading || checkoutLoading || startDate === '' || endDate === ''}
         className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed mt-4"
       >
-        {loading ? 'Calculating...' : checkoutLoading ? 'Redirecting to Stripe...' : 'Book Now'}
+        {loading
+          ? 'Calculating...'
+          : checkoutLoading
+            ? isMockCheckoutEnabled
+              ? 'Confirming booking...'
+              : 'Redirecting to Stripe...'
+            : isMockCheckoutEnabled
+              ? 'Book Now (Test Mode)'
+              : 'Book Now'}
       </button>
 
       <p className="text-xs text-slate-500 text-center">
-        You won't be charged until next step
+        {isMockCheckoutEnabled
+          ? 'Test mode active: payment is simulated and no Stripe checkout is used.'
+          : "You won't be charged until next step"}
       </p>
     </div>
   );

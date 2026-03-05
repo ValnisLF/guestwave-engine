@@ -38,6 +38,11 @@ Edita `.env.local` y completa con:
 - **Resend/SendGrid:** Token de API para desarrollo
 - **OpenAI:** (Opcional para Slice 3)
 
+Si quieres probar el flujo completo de reserva sin Stripe real desde frontend:
+- Activa `MOCK_CHECKOUT="1"` en `.env.local`
+- Configura `OWNER_NOTIFICATION_EMAIL` para recibir aviso de pago
+- Mantén `RESEND_API_KEY` para envío real de email
+
 ### Step 3: Verifica que funciona
 ```bash
 npm run dev
@@ -132,6 +137,11 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY; // ✅ OK (solo server)
 ### Error: "Stripe key is missing"
 → Asegúrate que `STRIPE_SECRET_KEY` está en `.env.local` (server-side)
 → Y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` está configurado
+
+### Quiero probar checkout sin Stripe integrado
+→ Activa `MOCK_CHECKOUT="1"` en `.env.local`
+→ Reinicia `pnpm dev`
+→ El checkout se simula, la reserva queda `CONFIRMED`, se bloquean fechas y se envía aviso al owner (si `RESEND_API_KEY` + `OWNER_NOTIFICATION_EMAIL` están configurados)
 
 ### Webhook de Stripe no funciona en local
 → Usa CLI local: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
