@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/ical/auto-sync",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

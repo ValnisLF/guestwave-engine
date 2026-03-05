@@ -137,4 +137,54 @@ describe('admin properties actions', () => {
     expect(result.error).toBe('Cannot delete property with active bookings');
     expect(propertyDeleteMock).not.toHaveBeenCalled();
   });
+
+  it('updates auto-sync settings for a property', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({ id: 'prop_1' });
+    propertyUpdateMock.mockResolvedValueOnce({
+      id: 'prop_1',
+      name: 'Villa Sol',
+      slug: 'villa-sol',
+      description: null,
+      imageUrls: [],
+      amenities: {},
+      basePrice: 120,
+      cleaningFee: 35,
+      minimumStay: 2,
+      depositPercentage: 30,
+      icalUrlIn: null,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    const { updatePropertyAutoSyncSettings } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertyAutoSyncSettings({
+      propertyId: 'prop_1',
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 20,
+    });
+
+    expect(result.success).toBe(true);
+    expect(propertyUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'prop_1' },
+      data: {
+        autoSyncEnabled: true,
+        autoSyncIntervalMinutes: 20,
+      },
+    });
+  });
+
+  it('rejects auto-sync interval outside valid range', async () => {
+    const { updatePropertyAutoSyncSettings } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertyAutoSyncSettings({
+      propertyId: 'prop_1',
+      autoSyncEnabled: true,
+      autoSyncIntervalMinutes: 2,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Auto-sync interval must be between 5 and 1440 minutes');
+    expect(propertyFindUniqueMock).not.toHaveBeenCalled();
+  });
 });

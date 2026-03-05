@@ -55,6 +55,9 @@ model Property {
   minimumStay       Int           @default(1)
   depositPercentage Int
   icalUrlIn         String?       // URL iCal externa
+  autoSyncEnabled   Boolean       @default(false)
+  autoSyncIntervalMinutes Int     @default(30)
+  autoSyncLastRunAt DateTime?
   icalCalendars     PropertyIcalCalendar[]
   seasonRates       SeasonRate[]
   bookings          Booking[]

@@ -13,6 +13,7 @@ import {
   syncPropertyIcalCalendarAction,
   syncPropertyCalendar,
   updateProperty,
+  updatePropertyAutoSyncSettings,
   updatePropertyIcalCalendar,
 } from '../_actions';
 
@@ -37,6 +38,9 @@ type PropertyView = {
   cleaningFee: number;
   minimumStay: number;
   depositPercentage: number;
+  autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number;
+  autoSyncLastRunAt: string | null;
   seasonRates: SeasonRateView[];
   icalCalendars: {
     id: string;
@@ -92,6 +96,7 @@ export function InventoryPricingAdmin({
   const [savingSeason, setSavingSeason] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
+  const [savingAutoSyncPropertyId, setSavingAutoSyncPropertyId] = useState<string | null>(null);
   const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
   const [updatingCalendar, setUpdatingCalendar] = useState(false);
   const [deletingCalendar, setDeletingCalendar] = useState(false);
@@ -130,6 +135,7 @@ export function InventoryPricingAdmin({
   const [seasonDepositPercentage, setSeasonDepositPercentage] = useState('30');
   const [newCalendarNameByProperty, setNewCalendarNameByProperty] = useState<Record<string, string>>({});
   const [newCalendarUrlByProperty, setNewCalendarUrlByProperty] = useState<Record<string, string>>({});
+  const [autoSyncIntervalByProperty, setAutoSyncIntervalByProperty] = useState<Record<string, string>>({});
 
   const properties = useMemo(() => initialProperties, [initialProperties]);
 
@@ -485,6 +491,43 @@ export function InventoryPricingAdmin({
     }
 
     setSyncMessage('All iCal sources synced');
+    router.refresh();
+  };
+
+  const onChangeAutoSyncInterval = (propertyId: string, value: string) => {
+    setAutoSyncIntervalByProperty((prev) => ({ ...prev, [propertyId]: value }));
+  };
+
+  const onSaveAutoSyncSettings = async (property: PropertyView, autoSyncEnabled: boolean) => {
+    const rawInterval = autoSyncIntervalByProperty[property.id] ?? String(property.autoSyncIntervalMinutes);
+    const interval = Number(rawInterval);
+
+    if (!Number.isFinite(interval) || interval < 5 || interval > 1440) {
+      setError('Auto-sync interval must be between 5 and 1440 minutes');
+      return;
+    }
+
+    setSavingAutoSyncPropertyId(property.id);
+    setError(null);
+
+    const result = await updatePropertyAutoSyncSettings({
+      propertyId: property.id,
+      autoSyncEnabled,
+      autoSyncIntervalMinutes: interval,
+    });
+
+    setSavingAutoSyncPropertyId(null);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error updating auto-sync settings');
+      return;
+    }
+
+    setSyncMessage(
+      autoSyncEnabled
+        ? `Auto-sync enabled every ${interval} minutes`
+        : 'Auto-sync disabled'
+    );
     router.refresh();
   };
 
@@ -886,6 +929,53 @@ export function InventoryPricingAdmin({
 
               <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h4 className="text-base font-semibold text-slate-900">Vincular calendarios</h4>
+
+                <div className="mt-3 rounded border border-slate-200 bg-white p-3">
+                  <div className="text-sm font-semibold text-slate-900">Sincronización automática</div>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Activa la actualización periódica de todos los calendarios vinculados de esta propiedad.
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-end gap-2">
+                    <label className="text-xs text-slate-700">
+                      Intervalo (min)
+                      <input
+                        className="ml-2 w-24 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
+                        type="number"
+                        min={5}
+                        max={1440}
+                        step={1}
+                        value={autoSyncIntervalByProperty[property.id] ?? String(property.autoSyncIntervalMinutes)}
+                        onChange={(e) => onChangeAutoSyncInterval(property.id, e.target.value)}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      disabled={savingAutoSyncPropertyId === property.id || property.autoSyncEnabled}
+                      onClick={() => onSaveAutoSyncSettings(property, true)}
+                    >
+                      {savingAutoSyncPropertyId === property.id ? 'Guardando...' : 'Activar auto-sync'}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      disabled={savingAutoSyncPropertyId === property.id || !property.autoSyncEnabled}
+                      onClick={() => onSaveAutoSyncSettings(property, false)}
+                    >
+                      {savingAutoSyncPropertyId === property.id ? 'Guardando...' : 'Desactivar auto-sync'}
+                    </button>
+                  </div>
+
+                  <div className="mt-2 text-xs text-slate-600">
+                    Estado: {property.autoSyncEnabled ? 'Activo' : 'Inactivo'} · cada {property.autoSyncIntervalMinutes} min
+                    {property.autoSyncLastRunAt
+                      ? ` · última ejecución: ${new Date(property.autoSyncLastRunAt).toLocaleString()}`
+                      : ''}
+                  </div>
+                </div>
 
                 <div className="mt-3 space-y-3">
                   {property.icalCalendars.length === 0 && (

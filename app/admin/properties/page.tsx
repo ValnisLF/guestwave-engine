@@ -28,6 +28,9 @@ export default async function AdminPropertiesPage() {
     cleaningFee: Number(property.cleaningFee),
     minimumStay: property.minimumStay,
     depositPercentage: property.depositPercentage,
+    autoSyncEnabled: property.autoSyncEnabled,
+    autoSyncIntervalMinutes: property.autoSyncIntervalMinutes,
+    autoSyncLastRunAt: property.autoSyncLastRunAt ? property.autoSyncLastRunAt.toISOString() : null,
     seasonRates: property.seasonRates.map((rate) => ({
       id: rate.id,
       startDate: rate.startDate.toISOString(),

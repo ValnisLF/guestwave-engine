@@ -85,11 +85,38 @@ Si ves mensajes sobre variables faltantes, revisa `.env.local`.
    NODE_ENV = "production"
    ```
 
+6. **Auto-sync iCal (interno)**
+   ```
+   ICAL_AUTO_SYNC_TOKEN = "<token-seguro-largo>"
+   ```
+
 ### En Vercel:
 1. Proyecto Settings > Environment Variables
 2. Pega cada variable
 3. Selecciona entornos (Production, Preview, Development)
 4. Deploy automático aplica las variables
+
+#### Configuración concreta de Vercel Cron (recomendada)
+1. Añade en Vercel las variables:
+    - `CRON_SECRET = <token-seguro-largo>`
+    - `ICAL_AUTO_SYNC_TOKEN = <mismo-token-o-otro-token-seguro>`
+2. Asegúrate de tener en el repo `vercel.json` con:
+```json
+{
+   "crons": [
+      {
+         "path": "/api/internal/ical/auto-sync",
+         "schedule": "*/5 * * * *"
+      }
+   ]
+}
+```
+3. Haz deploy en Vercel.
+4. Vercel llamará automáticamente cada 5 minutos al endpoint interno.
+
+Notas:
+- El endpoint aplica el intervalo configurado por propiedad (ej. 30 min), así que llamar cada 5 min no fuerza sync continuo.
+- Se sincronizan solo propiedades con `autoSyncEnabled = true` y con al menos una fuente iCal.
 
 ### En Railway/Render:
 1. Dashboard > Environment > Variables
@@ -146,4 +173,17 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY; // ✅ OK (solo server)
 ### Webhook de Stripe no funciona en local
 → Usa CLI local: `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
 → Copia el signing secret en `STRIPE_WEBHOOK_SECRET`
+
+### Activar sincronización automática iCal por propiedad
+1. En `/admin/properties`, activa `Sincronización automática` y define el intervalo en minutos.
+2. Configura un cron externo (Vercel Cron, GitHub Actions, UptimeRobot, etc.) que haga `POST` o `GET` a:
+   - `/api/internal/ical/auto-sync`
+3. Envía el header:
+   - `x-ical-auto-sync-token: <ICAL_AUTO_SYNC_TOKEN>`
+
+Ejemplo local:
+```bash
+curl -X POST http://localhost:3000/api/internal/ical/auto-sync \
+  -H "x-ical-auto-sync-token: $ICAL_AUTO_SYNC_TOKEN"
+```
 

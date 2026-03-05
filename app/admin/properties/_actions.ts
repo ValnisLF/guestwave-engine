@@ -436,6 +436,48 @@ export async function syncAllCalendars(): Promise<PropertyResponse> {
   }
 }
 
+export async function updatePropertyAutoSyncSettings(input: {
+  propertyId: string;
+  autoSyncEnabled: boolean;
+  autoSyncIntervalMinutes: number;
+}): Promise<PropertyResponse> {
+  try {
+    if (input.autoSyncIntervalMinutes < 5 || input.autoSyncIntervalMinutes > 1440) {
+      return {
+        success: false,
+        error: 'Auto-sync interval must be between 5 and 1440 minutes',
+      };
+    }
+
+    const property = await prisma.property.findUnique({ where: { id: input.propertyId } });
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
+    const updated = await prisma.property.update({
+      where: { id: input.propertyId },
+      data: {
+        autoSyncEnabled: input.autoSyncEnabled,
+        autoSyncIntervalMinutes: input.autoSyncIntervalMinutes,
+      },
+    } as any);
+
+    return {
+      success: true,
+      data: toPlainProperty(updated),
+    };
+  } catch (error) {
+    console.error('updatePropertyAutoSyncSettings error:', error);
+    return {
+      success: false,
+      error: 'Error updating auto-sync settings',
+    };
+  }
+}
+
 export type CreatePropertyIcalCalendarInput = {
   propertyId: string;
   name: string;
