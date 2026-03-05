@@ -268,14 +268,31 @@ export function PricingCalculator({
       {/* Price Breakdown */}
       {pricing && nights > 0 && !loading && (
         <div className="space-y-3 pt-4 border-t border-slate-200">
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-600">
-              ${basePrice.toFixed(0)} × {nights} night{nights > 1 ? 's' : ''}
-            </span>
-            <span className="font-medium">
-              ${(basePrice * nights).toFixed(0)}
-            </span>
-          </div>
+          {(() => {
+            const nightlyPrice = pricing.perNightEffective ?? basePrice;
+            const nightsSubtotal = nightlyPrice * nights;
+            const hasSeasonAdjustment = Math.abs(nightlyPrice - basePrice) > 0.009;
+
+            return (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">
+                    ${nightlyPrice.toFixed(0)} × {nights} night{nights > 1 ? 's' : ''}
+                    {hasSeasonAdjustment ? ' (season adjusted)' : ''}
+                  </span>
+                  <span className="font-medium">
+                    ${nightsSubtotal.toFixed(0)}
+                  </span>
+                </div>
+
+                {hasSeasonAdjustment && (
+                  <div className="text-xs text-slate-500">
+                    Base nightly price: ${basePrice.toFixed(0)}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {cleaningFee > 0 && (
             <div className="flex justify-between text-sm">
