@@ -78,6 +78,15 @@ describe('availability.isDateRangeAvailable', () => {
     expect(result.blockedDates).toHaveLength(1);
     expect(result.blockedDates[0].startDate).toEqual(new Date('2026-03-10'));
   });
+
+  it('should allow booking when check-in is exactly previous booking checkout', () => {
+    const requestedRange: DateRange = {
+      startDate: new Date('2026-03-15'),
+      endDate: new Date('2026-03-18'),
+    };
+    const result = isDateRangeAvailable(requestedRange, mockBlockedDates);
+    expect(result.isAvailable).toBe(true);
+  });
 });
 
 describe('availability.getBlockedDateRanges', () => {
@@ -121,14 +130,12 @@ describe('availability.hasDateCollision', () => {
     expect(result.hasCollision).toBe(true);
   });
 
-  it('should detect collision when ranges touch at boundary', () => {
+  it('should not detect collision when ranges only touch at boundary', () => {
     const range2: DateRange = {
       startDate: new Date('2026-03-15'),
       endDate: new Date('2026-03-20'),
     };
-    // En propiedades de alquiler, la salida de uno es la entrada del otro
-    // Por eso ranges que tocan limítrofes son considerados overlapping
     const result = hasDateCollision(range1, range2);
-    expect(result.hasCollision).toBe(true);
+    expect(result.hasCollision).toBe(false);
   });
 });

@@ -7,6 +7,27 @@ import { type SeasonRate } from '@features/pricing/types';
 import { createStripeCheckoutSession } from '@infra/stripe';
 import { sendOwnerPaymentNotification } from '@infra/notifications/resend';
 
+function toUtcDayTimestamp(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function validateBookingDates(startDate: Date, endDate: Date): string | null {
+  const today = new Date();
+  const todayUtcDay = toUtcDayTimestamp(today);
+  const startUtcDay = toUtcDayTimestamp(startDate);
+  const endUtcDay = toUtcDayTimestamp(endDate);
+
+  if (startUtcDay < todayUtcDay) {
+    return 'Check-in date cannot be in the past';
+  }
+
+  if (endUtcDay <= startUtcDay) {
+    return 'Check-out date must be after check-in date';
+  }
+
+  return null;
+}
+
 function isMockCheckoutEnabled() {
   return (
     process.env.E2E_MOCK_CHECKOUT === '1' ||
@@ -93,6 +114,15 @@ export async function checkAvailability(
 ): Promise<CheckAvailabilityResponse> {
   try {
     const { propertyId, startDate, endDate } = input;
+    const dateValidationError = validateBookingDates(startDate, endDate);
+
+    if (dateValidationError) {
+      return {
+        success: false,
+        available: false,
+        reason: dateValidationError,
+      };
+    }
 
     // Fetch property to ensure it exists
     const property = await prisma.property.findUnique({
@@ -185,6 +215,14 @@ export async function estimatePrice(
 ): Promise<EstimatePriceResponse> {
   try {
     const { propertyId, startDate, endDate, depositPercentage } = input;
+    const dateValidationError = validateBookingDates(startDate, endDate);
+
+    if (dateValidationError) {
+      return {
+        success: false,
+        error: dateValidationError,
+      };
+    }
 
     // Fetch property with season rates
     const property = await prisma.property.findUnique({

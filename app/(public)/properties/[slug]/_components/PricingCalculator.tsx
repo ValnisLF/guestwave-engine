@@ -42,6 +42,15 @@ export function PricingCalculator({
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
 
+  const toLocalDayTimestamp = (date: Date): number => {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  };
+
+  const isPastDate = (date: Date): boolean => {
+    const today = new Date();
+    return toLocalDayTimestamp(date) < toLocalDayTimestamp(today);
+  };
+
   // Format date to YYYY-MM-DD for input
   const formatDateForInput = (date: Date): string => {
     return date.toISOString().split('T')[0];
@@ -58,13 +67,13 @@ export function PricingCalculator({
   const isDateRangeAvailable = (start: string, end: string): boolean => {
     if (!start || !end) return true;
 
-    const startTime = new Date(start).getTime();
-    const endTime = new Date(end).getTime();
+    const startTime = toLocalDayTimestamp(new Date(start));
+    const endTime = toLocalDayTimestamp(new Date(end));
 
     return !unavailableDates.some((range) => {
-      const rangeStart = range.startDate.getTime();
-      const rangeEnd = range.endDate.getTime();
-      return startTime <= rangeEnd && endTime >= rangeStart;
+      const rangeStart = toLocalDayTimestamp(range.startDate);
+      const rangeEnd = toLocalDayTimestamp(range.endDate);
+      return startTime < rangeEnd && endTime > rangeStart;
     });
   };
 
@@ -78,6 +87,12 @@ export function PricingCalculator({
 
     if (new Date(startDate) >= new Date(endDate)) {
       setError('End date must be after start date');
+      setPricing(null);
+      return;
+    }
+
+    if (isPastDate(new Date(startDate))) {
+      setError('Check-in date cannot be in the past');
       setPricing(null);
       return;
     }
@@ -121,6 +136,25 @@ export function PricingCalculator({
 
     calculateAsync();
   }, [startDate, endDate, propertyId, depositPercentage, minimumStay]);
+
+  useEffect(() => {
+    const onCalendarDateRangeSelected = (
+      event: Event
+    ) => {
+      const customEvent = event as CustomEvent<{ startDate?: string; endDate?: string }>;
+      const nextStartDate = customEvent.detail?.startDate ?? '';
+      const nextEndDate = customEvent.detail?.endDate ?? '';
+
+      setStartDate(nextStartDate);
+      setEndDate(nextEndDate);
+    };
+
+    window.addEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
+
+    return () => {
+      window.removeEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
+    };
+  }, []);
 
   const nights = startDate && endDate
     ? Math.floor(

@@ -34,8 +34,10 @@ export function getBlockedDateRanges(blockedDates: DateRange[]): DateRange[] {
 
 /**
  * Detecta si dos rangos de fechas colisionan (overlappan)
- * Nota: Dos rangos que se tocan en los límites también se consideran colisionados
- * (check-out en fecha X es entrada del siguiente huésped en fecha X)
+ * usando intervalos semiabiertos: [startDate, endDate).
+ *
+ * Esto permite que un huésped haga check-out el mismo día
+ * en que otro hace check-in (la noche de check-out no se bloquea).
  */
 export function hasDateCollision(
   range1: DateRange,
@@ -44,8 +46,8 @@ export function hasDateCollision(
   const { startDate: start1, endDate: end1 } = range1;
   const { startDate: start2, endDate: end2 } = range2;
 
-  // Collisión ocurre si una no termina antes de que la otra empiece
-  const hasCollision = start1 <= end2 && end1 >= start2;
+  // Collisión en intervalos semiabiertos [start, end)
+  const hasCollision = start1 < end2 && end1 > start2;
 
   if (hasCollision) {
     return {

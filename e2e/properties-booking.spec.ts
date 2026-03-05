@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { expect, test, type Page } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 
@@ -11,8 +13,20 @@ function toInputDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+function atNoon(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(12, 0, 0, 0);
+  return d;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
 async function fillValidDates(page: Page, startOffsetDays = 1) {
-  const tomorrow = new Date();
+  const tomorrow = atNoon(new Date());
   tomorrow.setDate(tomorrow.getDate() + startOffsetDays);
 
   const checkout = new Date(tomorrow);
@@ -20,6 +34,24 @@ async function fillValidDates(page: Page, startOffsetDays = 1) {
 
   await page.getByLabel('Check-in').fill(toInputDate(tomorrow));
   await page.getByLabel('Check-out').fill(toInputDate(checkout));
+}
+
+async function fillDates(page: Page, checkIn: Date, checkOut: Date) {
+  await page.getByLabel('Check-in').fill(toInputDate(checkIn));
+  await page.getByLabel('Check-out').fill(toInputDate(checkOut));
+}
+
+async function findCalendarDayButton(page: Page, date: Date) {
+  const dateKey = toInputDate(date);
+  for (let i = 0; i < 4; i++) {
+    const button = page.locator(`button[data-date="${dateKey}"]`).first();
+    if (await button.count()) {
+      return button;
+    }
+    await page.getByRole('button', { name: 'Next month' }).click();
+  }
+
+  throw new Error(`Unable to find calendar day button for ${dateKey}`);
 }
 
 test.describe('Public properties booking flow', () => {
@@ -107,5 +139,46 @@ test.describe('Public properties booking flow', () => {
     await page.getByRole('button', { name: 'Book Now' }).click();
 
     await expect(page.getByText('Mock checkout failure')).toBeVisible();
+  });
+
+  test('blocks check-in night and keeps check-out day available in calendar', async ({ page }) => {
+    await page.goto(`/properties/${slug}`);
+
+    const checkIn = addDays(atNoon(new Date()), 12);
+    const checkOut = addDays(checkIn, 3);
+
+    await fillDates(page, checkIn, checkOut);
+
+    await page.getByLabel('Guest name').fill('E2E Calendar Semantics Guest');
+    await page.getByLabel('Email').fill('calendar-semantics@example.com');
+
+    await page.getByRole('button', { name: 'Book Now' }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/properties/${slug}\\?checkout=success&bookingId=`));
+
+    const checkInButton = await findCalendarDayButton(page, checkIn);
+    await expect(checkInButton).toBeDisabled();
+
+    const checkOutButton = await findCalendarDayButton(page, checkOut);
+    await expect(checkOutButton).toBeEnabled();
+  });
+
+  test('rejects booking when check-in date is in the past', async ({ page }) => {
+    await page.goto(`/properties/${slug}`);
+
+    const yesterday = addDays(atNoon(new Date()), -1);
+    const tomorrow = addDays(atNoon(new Date()), 1);
+
+    await fillDates(page, yesterday, tomorrow);
+
+    await page.getByLabel('Guest name').fill('E2E Past Date Guest');
+    await page.getByLabel('Email').fill('past-date@example.com');
+
+    const yesterdayCalendarButton = await findCalendarDayButton(page, yesterday);
+    await expect(yesterdayCalendarButton).toBeDisabled();
+
+    await expect(page.getByText('Check-in date cannot be in the past')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Book Now' })).toBeDisabled();
+    await expect(page).toHaveURL(new RegExp(`/properties/${slug}$`));
   });
 });

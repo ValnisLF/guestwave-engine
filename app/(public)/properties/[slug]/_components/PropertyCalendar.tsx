@@ -12,14 +12,46 @@ export function PropertyCalendar({
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
 
+  const toLocalDayTimestamp = (date: Date): number => {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  };
+
+  const toDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const emitSelectedRange = (start: Date | null, end: Date | null) => {
+    if (typeof window === 'undefined') return;
+
+    window.dispatchEvent(
+      new CustomEvent('guestwave:date-range-selected', {
+        detail: {
+          startDate: start ? toDateKey(start) : '',
+          endDate: end ? toDateKey(end) : '',
+        },
+      })
+    );
+  };
+
   const isDateUnavailable = (date: Date): boolean => {
     return unavailableDates.some((range) => {
-      const dateTime = date.getTime();
+      const dateTime = toLocalDayTimestamp(date);
+      const rangeStart = toLocalDayTimestamp(range.startDate);
+      const rangeEnd = toLocalDayTimestamp(range.endDate);
+
       return (
-        dateTime >= range.startDate.getTime() &&
-        dateTime <= range.endDate.getTime()
+        dateTime >= rangeStart &&
+        dateTime < rangeEnd
       );
     });
+  };
+
+  const isPastDate = (date: Date): boolean => {
+    const today = new Date();
+    return toLocalDayTimestamp(date) < toLocalDayTimestamp(today);
   };
 
   const isDateSelected = (date: Date): boolean => {
@@ -57,26 +89,34 @@ export function PropertyCalendar({
         currentDate.getMonth(),
         day
       );
+      const dateKey = toDateKey(date);
       const unavailable = isDateUnavailable(date);
+      const pastDate = isPastDate(date);
       const selected = isDateSelected(date);
+      const disabled = unavailable || pastDate;
 
       days.push(
         <button
           key={day}
+          data-date={dateKey}
+          aria-label={dateKey}
           onClick={() => {
             if (!selectedStart || (selectedStart && selectedEnd)) {
               setSelectedStart(date);
               setSelectedEnd(null);
+              emitSelectedRange(date, null);
             } else if (date > selectedStart) {
               setSelectedEnd(date);
+              emitSelectedRange(selectedStart, date);
             } else {
               setSelectedStart(date);
               setSelectedEnd(null);
+              emitSelectedRange(date, null);
             }
           }}
-          disabled={unavailable}
+          disabled={disabled}
           className={`p-2 rounded text-sm font-medium transition-colors ${
-            unavailable
+            disabled
               ? 'bg-red-100 text-red-500 cursor-not-allowed'
               : selected
                 ? 'bg-blue-600 text-white'
@@ -117,12 +157,14 @@ export function PropertyCalendar({
           <div className="flex gap-2">
             <button
               onClick={handlePrevMonth}
+              aria-label="Previous month"
               className="p-1 text-slate-700 hover:bg-slate-100 rounded"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={handleNextMonth}
+              aria-label="Next month"
               className="p-1 text-slate-700 hover:bg-slate-100 rounded"
             >
               <ChevronRight className="w-5 h-5" />
