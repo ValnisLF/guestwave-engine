@@ -6,11 +6,13 @@ import {
   createProperty,
   createPropertyIcalCalendar,
   createSeasonRate,
+  deleteProperty,
   deletePropertyIcalCalendar,
   deleteSeasonRate,
   syncAllCalendars,
   syncPropertyIcalCalendarAction,
   syncPropertyCalendar,
+  updateProperty,
   updatePropertyIcalCalendar,
 } from '../_actions';
 
@@ -42,6 +44,18 @@ type PropertyView = {
     icalUrl: string;
     lastSyncedAt: string | null;
   }[];
+};
+
+type PropertyDraft = {
+  name: string;
+  slug: string;
+  description: string;
+  imageUrlsText: string;
+  basePrice: string;
+  cleaningFee: string;
+  minimumStay: string;
+  depositPercentage: string;
+  amenities: Record<string, boolean>;
 };
 
 const AMENITIES_CATALOG = [
@@ -78,10 +92,15 @@ export function InventoryPricingAdmin({
   const [savingSeason, setSavingSeason] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [savingCalendar, setSavingCalendar] = useState(false);
+  const [deletingPropertyId, setDeletingPropertyId] = useState<string | null>(null);
   const [updatingCalendar, setUpdatingCalendar] = useState(false);
   const [deletingCalendar, setDeletingCalendar] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null);
+  const [updatingPropertyId, setUpdatingPropertyId] = useState<string | null>(null);
+  const [confirmDeletePropertyId, setConfirmDeletePropertyId] = useState<string | null>(null);
+  const [propertyDraftById, setPropertyDraftById] = useState<Record<string, PropertyDraft>>({});
   const [editingCalendarId, setEditingCalendarId] = useState<string | null>(null);
   const [confirmDeleteCalendarId, setConfirmDeleteCalendarId] = useState<string | null>(null);
   const [editCalendarName, setEditCalendarName] = useState('');
@@ -123,6 +142,103 @@ export function InventoryPricingAdmin({
       .split(/[\n,]/)
       .map((item) => item.trim())
       .filter(Boolean);
+
+  const getPropertyDraft = (property: PropertyView): PropertyDraft => ({
+    name: property.name,
+    slug: property.slug,
+    description: property.description ?? '',
+    imageUrlsText: property.imageUrls.join('\n'),
+    basePrice: String(property.basePrice),
+    cleaningFee: String(property.cleaningFee),
+    minimumStay: String(property.minimumStay),
+    depositPercentage: String(property.depositPercentage),
+    amenities: { ...property.amenities },
+  });
+
+  const onStartEditProperty = (property: PropertyView) => {
+    setEditingPropertyId(property.id);
+    setPropertyDraftById((prev) => ({
+      ...prev,
+      [property.id]: getPropertyDraft(property),
+    }));
+  };
+
+  const onCancelEditProperty = (propertyId: string) => {
+    setEditingPropertyId(null);
+    setPropertyDraftById((prev) => {
+      const next = { ...prev };
+      delete next[propertyId];
+      return next;
+    });
+  };
+
+  const onUpdatePropertyDraftField = (
+    propertyId: string,
+    field: keyof Omit<PropertyDraft, 'amenities'>,
+    value: string
+  ) => {
+    setPropertyDraftById((prev) => ({
+      ...prev,
+      [propertyId]: {
+        ...(prev[propertyId] ?? ({} as PropertyDraft)),
+        [field]: value,
+      },
+    }));
+  };
+
+  const onTogglePropertyDraftAmenity = (propertyId: string, amenityKey: string) => {
+    setPropertyDraftById((prev) => {
+      const draft = prev[propertyId];
+      if (!draft) return prev;
+
+      return {
+        ...prev,
+        [propertyId]: {
+          ...draft,
+          amenities: {
+            ...draft.amenities,
+            [amenityKey]: !draft.amenities[amenityKey],
+          },
+        },
+      };
+    });
+  };
+
+  const onSaveProperty = async (propertyId: string) => {
+    const draft = propertyDraftById[propertyId];
+    if (!draft) return;
+
+    if (!draft.name.trim() || !draft.slug.trim()) {
+      setError('Name and slug are required');
+      return;
+    }
+
+    setUpdatingPropertyId(propertyId);
+    setError(null);
+
+    const result = await updateProperty(propertyId, {
+      name: draft.name.trim(),
+      slug: draft.slug.trim(),
+      description: draft.description.trim() || null,
+      imageUrls: parseImageUrls(draft.imageUrlsText),
+      basePrice: Number(draft.basePrice),
+      cleaningFee: Number(draft.cleaningFee),
+      minimumStay: Number(draft.minimumStay),
+      depositPercentage: Number(draft.depositPercentage),
+      amenities: draft.amenities,
+    });
+
+    setUpdatingPropertyId(null);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error updating property');
+      return;
+    }
+
+    setSyncMessage('Property updated successfully');
+    onCancelEditProperty(propertyId);
+    router.refresh();
+  };
 
   const isValidIcalUrl = (value: string) => {
     try {
@@ -203,6 +319,37 @@ export function InventoryPricingAdmin({
       setError(result.error ?? 'Error deleting season rate');
       return;
     }
+    router.refresh();
+  };
+
+  const onDeleteProperty = async (propertyId: string) => {
+    setDeletingPropertyId(propertyId);
+    setError(null);
+    setSyncMessage(null);
+
+    const result = await deleteProperty(propertyId);
+
+    setDeletingPropertyId(null);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error deleting property');
+      return;
+    }
+
+    if (selectedPropertyId === propertyId) {
+      const fallback = properties.find((p) => p.id !== propertyId)?.id ?? '';
+      setSelectedPropertyId(fallback);
+    }
+
+    if (editingPropertyId === propertyId) {
+      onCancelEditProperty(propertyId);
+    }
+
+    if (confirmDeletePropertyId === propertyId) {
+      setConfirmDeletePropertyId(null);
+    }
+
+    setSyncMessage('Property deleted successfully');
     router.refresh();
   };
 
@@ -559,6 +706,183 @@ export function InventoryPricingAdmin({
               <p className="text-sm text-slate-600">
                 Min stay: {property.minimumStay} · Limpieza: ${property.cleaningFee} · Depósito: {property.depositPercentage}%
               </p>
+
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                  onClick={() => onStartEditProperty(property)}
+                >
+                  Editar propiedad
+                </button>
+                <button
+                  type="button"
+                  className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  disabled={Boolean(deletingPropertyId)}
+                  onClick={() => setConfirmDeletePropertyId(property.id)}
+                >
+                  {deletingPropertyId === property.id ? 'Eliminando...' : 'Eliminar propiedad'}
+                </button>
+              </div>
+
+              {confirmDeletePropertyId === property.id && (
+                <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                  <p>
+                    ¿Seguro que deseas eliminar esta propiedad? Esta acción no se puede deshacer.
+                  </p>
+                  <p className="mt-1">
+                    Nota: si hay reservas activas, el sistema bloqueará la eliminación.
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      disabled={deletingPropertyId === property.id}
+                      onClick={() => onDeleteProperty(property.id)}
+                    >
+                      {deletingPropertyId === property.id ? 'Eliminando...' : 'Confirmar eliminar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                      disabled={deletingPropertyId === property.id}
+                      onClick={() => setConfirmDeletePropertyId(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-3">
+                {editingPropertyId === property.id ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <h4 className="mb-3 text-base font-semibold text-slate-900">Editar propiedad</h4>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        placeholder="Nombre"
+                        value={propertyDraftById[property.id]?.name ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'name', e.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        placeholder="Slug"
+                        value={propertyDraftById[property.id]?.slug ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'slug', e.target.value)
+                        }
+                      />
+
+                      <textarea
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                        rows={3}
+                        placeholder="Descripción"
+                        value={propertyDraftById[property.id]?.description ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'description', e.target.value)
+                        }
+                      />
+
+                      <textarea
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                        rows={3}
+                        placeholder="URLs de fotos (coma o salto de línea)"
+                        value={propertyDraftById[property.id]?.imageUrlsText ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'imageUrlsText', e.target.value)
+                        }
+                      />
+
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        type="number"
+                        min={1}
+                        step="0.01"
+                        placeholder="Precio base"
+                        value={propertyDraftById[property.id]?.basePrice ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'basePrice', e.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="Limpieza"
+                        value={propertyDraftById[property.id]?.cleaningFee ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'cleaningFee', e.target.value)
+                        }
+                      />
+
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder="Estancia mínima"
+                        value={propertyDraftById[property.id]?.minimumStay ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'minimumStay', e.target.value)
+                        }
+                      />
+                      <input
+                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        placeholder="Depósito %"
+                        value={propertyDraftById[property.id]?.depositPercentage ?? ''}
+                        onChange={(e) =>
+                          onUpdatePropertyDraftField(property.id, 'depositPercentage', e.target.value)
+                        }
+                      />
+
+                      <div className="md:col-span-2">
+                        <div className="mb-2 text-sm font-medium text-slate-700">Amenities</div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                          {AMENITIES_CATALOG.map((amenityKey) => (
+                            <label key={`${property.id}-${amenityKey}`} className="flex items-center gap-2 text-sm text-slate-800">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(propertyDraftById[property.id]?.amenities?.[amenityKey])}
+                                onChange={() => onTogglePropertyDraftAmenity(property.id, amenityKey)}
+                              />
+                              <span>{amenityKey}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                        disabled={updatingPropertyId === property.id}
+                        onClick={() => onSaveProperty(property.id)}
+                      >
+                        {updatingPropertyId === property.id ? 'Guardando...' : 'Guardar cambios'}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => onCancelEditProperty(property.id)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
 
               <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h4 className="text-base font-semibold text-slate-900">Vincular calendarios</h4>
