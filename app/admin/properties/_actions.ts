@@ -2,6 +2,7 @@
 
 import { prisma } from '@infra/prisma';
 import { syncPropertyIcal, syncPropertyIcalCalendar } from '@infra/ical/sync';
+import { refundStripePayment } from '@infra/stripe';
 import { PropertyService } from '@features/properties/property.service';
 import { createPropertySchema, updatePropertySchema } from '@/lib/schemas/property';
 import {
@@ -100,6 +101,83 @@ export type CreateManualBlockedDateInput = {
   startDate: Date;
   endDate: Date;
 };
+
+export async function deleteBookingAndRefund(
+  bookingId: string,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        propertyId: true,
+        stripeSessionId: true,
+        totalPrice: true,
+        guestEmail: true,
+      },
+    });
+
+    if (!booking) {
+      return { success: false, error: 'Booking not found' };
+    }
+
+    const access = await requirePropertyAccess(booking.propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const actor = await ensureAppUserByEmail(access.email);
+
+    if (!booking.stripeSessionId) {
+      return {
+        success: false,
+        error: 'Booking cannot be refunded: missing Stripe session id',
+      };
+    }
+
+    const refund = await refundStripePayment({
+      stripeSessionId: booking.stripeSessionId,
+      amount: Number(booking.totalPrice),
+      reason: 'requested_by_customer',
+    });
+
+    if (refund.status !== 'succeeded') {
+      return {
+        success: false,
+        error: 'Stripe refund could not be confirmed',
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.blockedDate.deleteMany({ where: { bookingId: booking.id } });
+      await tx.booking.delete({ where: { id: booking.id } });
+      await (tx as any).bookingRefundAudit.create({
+        data: {
+          bookingId: booking.id,
+          propertyId: booking.propertyId,
+          performedByUserId: actor.id,
+          guestEmail: booking.guestEmail,
+          amount: booking.totalPrice,
+          refundId: refund.id,
+          refundStatus: refund.status,
+        },
+      });
+    });
+
+    return {
+      success: true,
+      data: {
+        id: booking.id,
+        refundId: refund.id,
+      },
+    };
+  } catch (error) {
+    console.error('deleteBookingAndRefund error:', error);
+    return {
+      success: false,
+      error: 'Error deleting booking and issuing refund',
+    };
+  }
+}
 
 function toPlainProperty(property: any) {
   return {

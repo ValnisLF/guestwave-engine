@@ -81,6 +81,7 @@ export async function getOwnerWorkspaceProperty(propertyId: string) {
       status: booking.status,
       checkIn: booking.checkIn.toISOString(),
       checkOut: booking.checkOut.toISOString(),
+      stripeSessionId: booking.stripeSessionId,
       guestEmail: booking.guestEmail,
       totalPrice: Number(booking.totalPrice),
       depositAmount: Number(booking.depositAmount),

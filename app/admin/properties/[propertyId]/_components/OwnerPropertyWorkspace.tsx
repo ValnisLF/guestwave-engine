@@ -7,6 +7,7 @@ import {
   createPropertyInvite,
   createPropertyIcalCalendar,
   createSeasonRate,
+  deleteBookingAndRefund,
   deletePropertyIcalCalendar,
   deleteSeasonRate,
   syncPropertyCalendar,
@@ -39,6 +40,7 @@ type BookingView = {
   status: string;
   checkIn: string;
   checkOut: string;
+  stripeSessionId: string;
   guestEmail: string | null;
   totalPrice: number;
   depositAmount: number;
@@ -161,6 +163,8 @@ export function OwnerPropertyWorkspace({
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [refundingBookingId, setRefundingBookingId] = useState<string | null>(null);
+  const [bookingPendingRefund, setBookingPendingRefund] = useState<BookingView | null>(null);
 
   const [manualBlockStartDate, setManualBlockStartDate] = useState('');
   const [manualBlockEndDate, setManualBlockEndDate] = useState('');
@@ -499,6 +503,27 @@ export function OwnerPropertyWorkspace({
     } else {
       setSuccess('Invite created');
     }
+  };
+
+  const onDeleteBookingAndRefund = async () => {
+    if (!bookingPendingRefund) return;
+
+    setRefundingBookingId(bookingPendingRefund.id);
+    setError(null);
+    setSuccess(null);
+
+    const result = await deleteBookingAndRefund(bookingPendingRefund.id);
+
+    setRefundingBookingId(null);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error deleting booking and issuing refund');
+      return;
+    }
+
+    setBookingPendingRefund(null);
+    setSuccess('Reserva eliminada y reembolso emitido correctamente');
+    router.refresh();
   };
 
   return (
@@ -865,12 +890,13 @@ export function OwnerPropertyWorkspace({
                     <th className="py-2 pr-3">Huesped</th>
                     <th className="py-2 pr-3">Total</th>
                     <th className="py-2 pr-3">Deposito</th>
+                    <th className="py-2 pr-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {property.bookings.length === 0 ? (
                     <tr>
-                      <td className="py-3 text-slate-500" colSpan={7}>
+                      <td className="py-3 text-slate-500" colSpan={8}>
                         No hay reservas para esta propiedad.
                       </td>
                     </tr>
@@ -884,6 +910,18 @@ export function OwnerPropertyWorkspace({
                         <td className="py-2 pr-3">{booking.guestEmail ?? '-'}</td>
                         <td className="py-2 pr-3">{booking.totalPrice.toFixed(2)} EUR</td>
                         <td className="py-2 pr-3">{booking.depositAmount.toFixed(2)} EUR</td>
+                        <td className="py-2 pr-3">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={refundingBookingId === booking.id || !booking.stripeSessionId}
+                            onClick={() => setBookingPendingRefund(booking)}
+                          >
+                            {bookingPendingRefund?.id === booking.id
+                              ? 'Pendiente de confirmacion'
+                              : 'Eliminar y emitir reembolso'}
+                          </Button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -950,6 +988,43 @@ export function OwnerPropertyWorkspace({
             </form>
           </CardContent>
         </Card>
+      ) : null}
+
+      {bookingPendingRefund ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-md rounded-lg border border-rose-200 bg-white p-4 shadow-xl">
+            <p className="text-sm font-semibold text-rose-800">Confirmar eliminacion y reembolso</p>
+            <p className="mt-2 text-sm text-slate-700">
+              Huesped: {bookingPendingRefund.guestEmail ?? 'Sin email'}
+            </p>
+            <p className="text-sm text-slate-700">
+              Importe a reembolsar: {bookingPendingRefund.totalPrice.toFixed(2)} EUR
+            </p>
+            <p className="mt-2 text-xs text-slate-600">
+              Esta accion eliminara la reserva y sus fechas bloqueadas solo si Stripe confirma el reembolso.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setBookingPendingRefund(null)}
+                disabled={refundingBookingId === bookingPendingRefund.id}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={onDeleteBookingAndRefund}
+                disabled={refundingBookingId === bookingPendingRefund.id}
+              >
+                {refundingBookingId === bookingPendingRefund.id
+                  ? 'Procesando...'
+                  : 'Confirmar reembolso y eliminar'}
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

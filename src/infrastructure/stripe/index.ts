@@ -64,4 +64,21 @@ export function verifyStripeWebhook(rawBody: string, signature: string) {
   return stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
 }
 
+export type RefundStripePaymentPayload = {
+  stripeSessionId: string;
+  amount: number;
+  reason?: 'requested_by_customer' | 'duplicate' | 'fraudulent';
+};
+
+export async function refundStripePayment(payload: RefundStripePaymentPayload) {
+  // Stripe refund integration is intentionally mocked for now.
+  // This keeps manual cancellation/reimbursement flow testable before full payment_intent mapping is added.
+  return {
+    id: `re_mock_${payload.stripeSessionId}`,
+    status: 'succeeded' as const,
+    amount: payload.amount,
+    reason: payload.reason ?? 'requested_by_customer',
+  };
+}
+
 export default getStripeClient;
