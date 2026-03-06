@@ -11,6 +11,7 @@ import {
   getAuthenticatedAdminEmail,
   isSystemAdminByEmail,
 } from '@/lib/admin-auth';
+import { sendBookingEmail } from '@/lib/mail';
 import { sendAdminInviteEmail } from '@infra/notifications/resend';
 import { randomUUID } from 'crypto';
 import { ZodError } from 'zod';
@@ -101,6 +102,133 @@ export type CreateManualBlockedDateInput = {
   startDate: Date;
   endDate: Date;
 };
+
+export type UpdatePropertySmtpInput = {
+  propertyId: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpPassword?: string;
+  smtpFromEmail: string;
+};
+
+export type TestPropertySmtpInput = UpdatePropertySmtpInput & {
+  testToEmail?: string;
+};
+
+export async function updatePropertySmtpSettings(
+  input: UpdatePropertySmtpInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const access = await requirePropertyAccess(input.propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const property = await prisma.property.findUnique({
+      where: { id: input.propertyId },
+      select: {
+        id: true,
+        smtpPassword: true,
+      },
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
+    const nextPassword = input.smtpPassword?.trim() ? input.smtpPassword.trim() : property.smtpPassword;
+
+    if (!nextPassword) {
+      return {
+        success: false,
+        error: 'SMTP password is required',
+      };
+    }
+
+    await prisma.property.update({
+      where: { id: input.propertyId },
+      data: {
+        smtpHost: input.smtpHost.trim(),
+        smtpPort: input.smtpPort,
+        smtpUser: input.smtpUser.trim(),
+        smtpPassword: nextPassword,
+        smtpFromEmail: input.smtpFromEmail.trim(),
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('updatePropertySmtpSettings error:', error);
+    return {
+      success: false,
+      error: 'Error updating SMTP settings',
+    };
+  }
+}
+
+export async function testPropertySmtpConnection(
+  input: TestPropertySmtpInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const access = await requirePropertyAccess(input.propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const property = await prisma.property.findUnique({
+      where: { id: input.propertyId },
+      select: {
+        smtpPassword: true,
+      },
+    });
+
+    const toEmail = input.testToEmail?.trim() || access.email;
+    const smtpPassword = input.smtpPassword?.trim() || property?.smtpPassword || '';
+
+    if (!smtpPassword) {
+      return {
+        success: false,
+        error: 'SMTP password is required to send a test email',
+      };
+    }
+
+    if (!toEmail) {
+      return {
+        success: false,
+        error: 'No test recipient email available',
+      };
+    }
+
+    await sendBookingEmail({
+      to: toEmail,
+      subject: 'GuestWave · Test SMTP',
+      html: '<p>Conexion SMTP OK desde GuestWave.</p>',
+      text: 'Conexion SMTP OK desde GuestWave.',
+      property: {
+        smtpHost: input.smtpHost,
+        smtpPort: input.smtpPort,
+        smtpUser: input.smtpUser,
+        smtpPassword,
+        smtpFromEmail: input.smtpFromEmail,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        recipient: toEmail,
+      },
+    };
+  } catch (error) {
+    console.error('testPropertySmtpConnection error:', error);
+    return {
+      success: false,
+      error: 'No se pudo enviar el email de prueba con estos datos SMTP',
+    };
+  }
+}
 
 export async function deleteBookingAndRefund(
   bookingId: string,

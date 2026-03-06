@@ -12,7 +12,7 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **Auth Backoffice:** Auth local de aplicación (email/password hasheado + sesión por cookie en DB).
 - **Componentes:** Shadcn/UI + Tailwind CSS.
 - **Pagos:** Stripe Checkout (Soporte para pago total o depósito %).
-- **Emails:** Resend / SendGrid.
+- **Emails:** Nodemailer (SMTP Dinámico).
 - **IA:** OpenAI SDK (GPT-4o) para RAG de turismo y extracción de datos de DNI (Vision).
 - **Validación:** Zod (Compartido entre Client y Server).
 - **ORM:** Prisma 6.x (PostgreSQL) (Compatible con Node.js 21).
@@ -37,6 +37,8 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 	- `ADMIN`: crea propiedades (alta simple name/slug) e invita usuarios `OWNER` por email.
 	- `OWNER`: gestiona las propiedades que tiene asociadas mediante membresías.
 3. **Guest Access:** Los huéspedes acceden a `/reserva/[id]` validando el `guest_token` (UUID) contra la base de datos, sin necesidad de login.
+4. **Password hashing**: bcrypt con un coste de 12.
+5. 
 
 ## 💾 Modelado de Datos (Esquema Principal)
 - `properties`: (id, name, slug, description, amenities (jsonb), base_price, deposit_pct, ical_url_in).
@@ -56,3 +58,8 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **Component Testing:** React Testing Library para componentes críticos del Checkout.
 - **E2E Testing:** Playwright para el flujo completo: "Reserva -> Pago Stripe (Mock) -> Confirmación".
 - **Workflow:** Red-Green-Refactor. Ninguna lógica de negocio se implementa sin un test fallido previo.
+
+## Envio de emails
+- **Email Engine:** Nodemailer (SMTP Dinámico).
+- **Security:** Las contraseñas SMTP se almacenan encriptadas en Supabase (usando pgcrypto o una librería de cifrado en el server).
+- **Fallback:** Si no hay SMTP configurado, el sistema usa una cuenta por defecto del sistema.

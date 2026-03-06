@@ -16,8 +16,12 @@ export default defineConfig({
     // Use node environment for pure logic tests; jsdom causes ESM/CJS conflicts with html-encoding-sniffer
     environment: 'node',
     globals: true,
-    // Only run tests in src/ and tests/ folders, not from node_modules dependencies
-    include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
+    // Run tests in src/, tests/, and lib/ folders, not from node_modules dependencies
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'tests/**/*.{test,spec}.{ts,tsx}',
+      'lib/**/*.{test,spec}.{ts,tsx}',
+    ],
     setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',

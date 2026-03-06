@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
 import {
   createManualBlockedDate,
   createPropertyInvite,
@@ -12,9 +13,11 @@ import {
   deleteSeasonRate,
   syncPropertyCalendar,
   syncPropertyIcalCalendarAction,
+  testPropertySmtpConnection,
   updateProperty,
   updatePropertyAutoSyncSettings,
   updatePropertyIcalCalendar,
+  updatePropertySmtpSettings,
 } from '@/app/admin/properties/_actions';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -61,6 +64,11 @@ type PropertyView = {
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   autoSyncLastRunAt: string | null;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpUser: string | null;
+  smtpPassword: string | null;
+  smtpFromEmail: string | null;
   seasonRates: SeasonRateView[];
   bookings: BookingView[];
   icalCalendars: {
@@ -165,10 +173,35 @@ export function OwnerPropertyWorkspace({
   const [sendingInvite, setSendingInvite] = useState(false);
   const [refundingBookingId, setRefundingBookingId] = useState<string | null>(null);
   const [bookingPendingRefund, setBookingPendingRefund] = useState<BookingView | null>(null);
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [savingSmtp, setSavingSmtp] = useState(false);
+  const [smtpConnectionTested, setSmtpConnectionTested] = useState(false);
 
   const [manualBlockStartDate, setManualBlockStartDate] = useState('');
   const [manualBlockEndDate, setManualBlockEndDate] = useState('');
   const [savingManualBlock, setSavingManualBlock] = useState(false);
+
+  type SmtpFormValues = {
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPassword: string;
+    smtpFromEmail: string;
+    testToEmail: string;
+  };
+
+  const smtpForm = useForm<SmtpFormValues>({
+    defaultValues: {
+      smtpHost: property.smtpHost ?? '',
+      smtpPort: property.smtpPort ?? 587,
+      smtpUser: property.smtpUser ?? '',
+      smtpPassword: '',
+      smtpFromEmail: property.smtpFromEmail ?? '',
+      testToEmail: '',
+    },
+  });
+
+  const smtpDirty = smtpForm.formState.isDirty;
 
   const toDisplayName = (email: string | null | undefined): string => {
     if (!email) return 'Propietario';
@@ -503,6 +536,95 @@ export function OwnerPropertyWorkspace({
     } else {
       setSuccess('Invite created');
     }
+  };
+
+  const onTestSmtp = async () => {
+    const isValid = await smtpForm.trigger([
+      'smtpHost',
+      'smtpPort',
+      'smtpUser',
+      'smtpFromEmail',
+    ]);
+
+    if (!isValid) {
+      setError('Revisa los campos SMTP antes de enviar el email de prueba');
+      return;
+    }
+
+    setTestingSmtp(true);
+    setError(null);
+    setSuccess(null);
+
+    const values = smtpForm.getValues();
+
+    const result = await testPropertySmtpConnection({
+      propertyId: property.id,
+      smtpHost: values.smtpHost,
+      smtpPort: Number(values.smtpPort),
+      smtpUser: values.smtpUser,
+      smtpPassword: values.smtpPassword,
+      smtpFromEmail: values.smtpFromEmail,
+      testToEmail: values.testToEmail,
+    });
+
+    setTestingSmtp(false);
+
+    if (!result.success) {
+      setSmtpConnectionTested(false);
+      setError(result.error ?? 'No se pudo completar el test SMTP');
+      return;
+    }
+
+    setSmtpConnectionTested(true);
+    setSuccess(`Email de prueba enviado a ${result.data?.recipient ?? 'destino configurado'}`);
+  };
+
+  const onSaveSmtp = async () => {
+    const isValid = await smtpForm.trigger([
+      'smtpHost',
+      'smtpPort',
+      'smtpUser',
+      'smtpFromEmail',
+    ]);
+
+    if (!isValid) {
+      setError('Revisa los campos SMTP antes de guardar');
+      return;
+    }
+
+    if (!smtpConnectionTested) {
+      setError('Debes enviar un email de prueba antes de guardar los cambios SMTP');
+      return;
+    }
+
+    setSavingSmtp(true);
+    setError(null);
+    setSuccess(null);
+
+    const values = smtpForm.getValues();
+    const result = await updatePropertySmtpSettings({
+      propertyId: property.id,
+      smtpHost: values.smtpHost,
+      smtpPort: Number(values.smtpPort),
+      smtpUser: values.smtpUser,
+      smtpPassword: values.smtpPassword,
+      smtpFromEmail: values.smtpFromEmail,
+    });
+
+    setSavingSmtp(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'No se pudieron guardar los datos SMTP');
+      return;
+    }
+
+    smtpForm.reset({
+      ...values,
+      smtpPassword: '',
+    });
+    setSmtpConnectionTested(false);
+    setSuccess('Configuracion SMTP guardada');
+    router.refresh();
   };
 
   const onDeleteBookingAndRefund = async () => {
@@ -968,24 +1090,144 @@ export function OwnerPropertyWorkspace({
       {section === 'ajuste' ? (
         <Card>
           <CardHeader>
-            <CardTitle>Ajuste · Invitar colaboradores</CardTitle>
+            <CardTitle>Ajuste · SMTP e Invitar colaboradores</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={onInviteOwner} className="space-y-3">
-              <Input
-                type="email"
-                placeholder="owner@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
-              <Select value="OWNER" disabled>
-                <option value="OWNER">OWNER</option>
-              </Select>
-              <Button type="submit" disabled={sendingInvite}>
-                {sendingInvite ? 'Enviando...' : 'Invitar OWNER'}
-              </Button>
-            </form>
+            <div className="space-y-6">
+              <div className="rounded border border-slate-200 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Configuracion SMTP de la propiedad</h3>
+                <p className="mt-1 text-xs text-slate-600">
+                  Envia un email de prueba antes de guardar. Si dejas la contrasena vacia, se mantiene la actual.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-700">SMTP Host</span>
+                    <Input
+                      placeholder="smtp.tu-proveedor.com"
+                      {...smtpForm.register('smtpHost', {
+                        required: 'SMTP Host es obligatorio',
+                        onChange: () => setSmtpConnectionTested(false),
+                      })}
+                    />
+                    {smtpForm.formState.errors.smtpHost ? (
+                      <span className="text-xs text-red-600">{smtpForm.formState.errors.smtpHost.message}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-700">SMTP Port</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={65535}
+                      {...smtpForm.register('smtpPort', {
+                        valueAsNumber: true,
+                        required: 'SMTP Port es obligatorio',
+                        min: { value: 1, message: 'Puerto invalido' },
+                        max: { value: 65535, message: 'Puerto invalido' },
+                        onChange: () => setSmtpConnectionTested(false),
+                      })}
+                    />
+                    {smtpForm.formState.errors.smtpPort ? (
+                      <span className="text-xs text-red-600">{smtpForm.formState.errors.smtpPort.message}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-700">SMTP User</span>
+                    <Input
+                      placeholder="usuario-smtp"
+                      {...smtpForm.register('smtpUser', {
+                        required: 'SMTP User es obligatorio',
+                        onChange: () => setSmtpConnectionTested(false),
+                      })}
+                    />
+                    {smtpForm.formState.errors.smtpUser ? (
+                      <span className="text-xs text-red-600">{smtpForm.formState.errors.smtpUser.message}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="space-y-1">
+                    <span className="text-xs text-slate-700">SMTP Password (encriptada en BD)</span>
+                    <Input
+                      type="password"
+                      placeholder="********"
+                      {...smtpForm.register('smtpPassword', {
+                        onChange: () => setSmtpConnectionTested(false),
+                      })}
+                    />
+                  </label>
+
+                  <label className="space-y-1 md:col-span-2">
+                    <span className="text-xs text-slate-700">Email remitente (From)</span>
+                    <Input
+                      type="email"
+                      placeholder="reservas@tu-dominio.com"
+                      {...smtpForm.register('smtpFromEmail', {
+                        required: 'Email remitente obligatorio',
+                        pattern: {
+                          value: /^\S+@\S+\.\S+$/,
+                          message: 'Email remitente invalido',
+                        },
+                        onChange: () => setSmtpConnectionTested(false),
+                      })}
+                    />
+                    {smtpForm.formState.errors.smtpFromEmail ? (
+                      <span className="text-xs text-red-600">{smtpForm.formState.errors.smtpFromEmail.message}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="space-y-1 md:col-span-2">
+                    <span className="text-xs text-slate-700">Email de prueba (opcional)</span>
+                    <Input
+                      type="email"
+                      placeholder="owner@example.com"
+                      {...smtpForm.register('testToEmail')}
+                    />
+                    <span className="text-xs text-slate-500">
+                      Si lo dejas vacio, se enviara al email del usuario autenticado.
+                    </span>
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={onTestSmtp} disabled={testingSmtp}>
+                    {testingSmtp ? 'Enviando...' : 'Enviar email de prueba'}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={onSaveSmtp}
+                    disabled={savingSmtp || testingSmtp || !smtpConnectionTested || !smtpDirty}
+                  >
+                    {savingSmtp ? 'Guardando...' : 'Guardar configuracion SMTP'}
+                  </Button>
+                </div>
+
+                <p className="mt-2 text-xs text-slate-600">
+                  Estado test SMTP: {smtpConnectionTested ? 'Validado en esta sesion' : 'Pendiente'}
+                </p>
+              </div>
+
+              <div className="rounded border border-slate-200 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Invitar colaboradores</h3>
+                <form onSubmit={onInviteOwner} className="mt-3 space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="owner@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    required
+                  />
+                  <Select value="OWNER" disabled>
+                    <option value="OWNER">OWNER</option>
+                  </Select>
+                  <Button type="submit" disabled={sendingInvite}>
+                    {sendingInvite ? 'Enviando...' : 'Invitar OWNER'}
+                  </Button>
+                </form>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : null}

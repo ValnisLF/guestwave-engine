@@ -67,6 +67,11 @@ export async function getOwnerWorkspaceProperty(propertyId: string) {
     autoSyncEnabled: property.autoSyncEnabled,
     autoSyncIntervalMinutes: property.autoSyncIntervalMinutes,
     autoSyncLastRunAt: property.autoSyncLastRunAt ? property.autoSyncLastRunAt.toISOString() : null,
+    smtpHost: property.smtpHost,
+    smtpPort: property.smtpPort,
+    smtpUser: property.smtpUser,
+    smtpPassword: property.smtpPassword,
+    smtpFromEmail: property.smtpFromEmail,
     seasonRates: property.seasonRates.map((rate) => ({
       id: rate.id,
       startDate: rate.startDate.toISOString(),

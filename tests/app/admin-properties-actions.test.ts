@@ -8,6 +8,7 @@ const bookingFindUniqueMock = vi.fn();
 const bookingDeleteMock = vi.fn();
 const blockedDateDeleteManyMock = vi.fn();
 const bookingRefundAuditCreateMock = vi.fn();
+const sendBookingEmailMock = vi.fn();
 
 vi.mock('@infra/prisma', () => ({
   prisma: {
@@ -49,6 +50,10 @@ const refundStripePaymentMock = vi.fn();
 
 vi.mock('@infra/stripe', () => ({
   refundStripePayment: refundStripePaymentMock,
+}));
+
+vi.mock('@/lib/mail', () => ({
+  sendBookingEmail: sendBookingEmailMock,
 }));
 
 vi.mock('@/lib/admin-auth', () => ({
@@ -221,6 +226,182 @@ describe('admin properties actions', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('Auto-sync interval must be between 5 and 1440 minutes');
     expect(propertyFindUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it('updates SMTP settings using new password when provided', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      id: 'prop_1',
+      smtpPassword: 'stored-pass',
+    });
+    propertyUpdateMock.mockResolvedValueOnce({ id: 'prop_1' });
+
+    const { updatePropertySmtpSettings } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertySmtpSettings({
+      propertyId: 'prop_1',
+      smtpHost: ' smtp.host.local ',
+      smtpPort: 587,
+      smtpUser: ' smtp-user ',
+      smtpPassword: ' new-pass ',
+      smtpFromEmail: ' from@example.com ',
+    });
+
+    expect(result.success).toBe(true);
+    expect(propertyUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'prop_1' },
+      data: {
+        smtpHost: 'smtp.host.local',
+        smtpPort: 587,
+        smtpUser: 'smtp-user',
+        smtpPassword: 'new-pass',
+        smtpFromEmail: 'from@example.com',
+      },
+    });
+  });
+
+  it('keeps existing SMTP password when password input is empty', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      id: 'prop_1',
+      smtpPassword: 'stored-pass',
+    });
+    propertyUpdateMock.mockResolvedValueOnce({ id: 'prop_1' });
+
+    const { updatePropertySmtpSettings } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertySmtpSettings({
+      propertyId: 'prop_1',
+      smtpHost: 'smtp.host.local',
+      smtpPort: 2525,
+      smtpUser: 'smtp-user',
+      smtpPassword: '   ',
+      smtpFromEmail: 'from@example.com',
+    });
+
+    expect(result.success).toBe(true);
+    expect(propertyUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'prop_1' },
+      data: {
+        smtpHost: 'smtp.host.local',
+        smtpPort: 2525,
+        smtpUser: 'smtp-user',
+        smtpPassword: 'stored-pass',
+        smtpFromEmail: 'from@example.com',
+      },
+    });
+  });
+
+  it('rejects SMTP save when no password exists at all', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      id: 'prop_1',
+      smtpPassword: null,
+    });
+
+    const { updatePropertySmtpSettings } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertySmtpSettings({
+      propertyId: 'prop_1',
+      smtpHost: 'smtp.host.local',
+      smtpPort: 2525,
+      smtpUser: 'smtp-user',
+      smtpPassword: '',
+      smtpFromEmail: 'from@example.com',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('SMTP password is required');
+    expect(propertyUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it('tests SMTP connection using provided password and test recipient', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      smtpPassword: 'stored-pass',
+    });
+    sendBookingEmailMock.mockResolvedValueOnce({ success: true, messageId: 'm_1' });
+
+    const { testPropertySmtpConnection } = await import('@/app/admin/properties/_actions');
+
+    const result = await testPropertySmtpConnection({
+      propertyId: 'prop_1',
+      smtpHost: 'smtp.host.local',
+      smtpPort: 587,
+      smtpUser: 'smtp-user',
+      smtpPassword: 'provided-pass',
+      smtpFromEmail: 'from@example.com',
+      testToEmail: 'qa@example.com',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ recipient: 'qa@example.com' });
+    expect(sendBookingEmailMock).toHaveBeenCalledWith({
+      to: 'qa@example.com',
+      subject: 'GuestWave · Test SMTP',
+      html: '<p>Conexion SMTP OK desde GuestWave.</p>',
+      text: 'Conexion SMTP OK desde GuestWave.',
+      property: {
+        smtpHost: 'smtp.host.local',
+        smtpPort: 587,
+        smtpUser: 'smtp-user',
+        smtpPassword: 'provided-pass',
+        smtpFromEmail: 'from@example.com',
+      },
+    });
+  });
+
+  it('tests SMTP connection using stored password fallback when input password is empty', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      smtpPassword: 'stored-pass',
+    });
+    sendBookingEmailMock.mockResolvedValueOnce({ success: true, messageId: 'm_2' });
+
+    const { testPropertySmtpConnection } = await import('@/app/admin/properties/_actions');
+
+    const result = await testPropertySmtpConnection({
+      propertyId: 'prop_1',
+      smtpHost: 'smtp.host.local',
+      smtpPort: 465,
+      smtpUser: 'smtp-user',
+      smtpPassword: ' ',
+      smtpFromEmail: 'from@example.com',
+      testToEmail: '',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ recipient: 'owner@example.com' });
+    expect(sendBookingEmailMock).toHaveBeenCalledWith({
+      to: 'owner@example.com',
+      subject: 'GuestWave · Test SMTP',
+      html: '<p>Conexion SMTP OK desde GuestWave.</p>',
+      text: 'Conexion SMTP OK desde GuestWave.',
+      property: {
+        smtpHost: 'smtp.host.local',
+        smtpPort: 465,
+        smtpUser: 'smtp-user',
+        smtpPassword: 'stored-pass',
+        smtpFromEmail: 'from@example.com',
+      },
+    });
+  });
+
+  it('rejects SMTP test when no password is provided nor stored', async () => {
+    propertyFindUniqueMock.mockResolvedValueOnce({
+      smtpPassword: null,
+    });
+
+    const { testPropertySmtpConnection } = await import('@/app/admin/properties/_actions');
+
+    const result = await testPropertySmtpConnection({
+      propertyId: 'prop_1',
+      smtpHost: 'smtp.host.local',
+      smtpPort: 587,
+      smtpUser: 'smtp-user',
+      smtpPassword: '',
+      smtpFromEmail: 'from@example.com',
+      testToEmail: 'qa@example.com',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('SMTP password is required to send a test email');
+    expect(sendBookingEmailMock).not.toHaveBeenCalled();
   });
 
   it('deletes a booking only after successful refund confirmation', async () => {
