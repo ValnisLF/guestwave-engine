@@ -86,7 +86,10 @@ export async function syncPropertyIcalCalendar(calendarId: string) {
 
     await tx.propertyIcalCalendar.update({
       where: { id: calendar.id },
-      data: { lastSyncedAt: new Date() },
+      data: {
+        lastSyncedAt: new Date(),
+        lastSyncSuccessAt: new Date(),
+      },
     });
   });
 

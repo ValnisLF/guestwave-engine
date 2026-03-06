@@ -64,6 +64,13 @@ async function runAutoSync(request: NextRequest) {
   };
 
   for (const property of dueProperties) {
+    // Keep a per-calendar heartbeat so owners can confirm cron attempts are running.
+    // This is updated on every due cron execution, independently of sync success/failure.
+    await prisma.propertyIcalCalendar.updateMany({
+      where: { propertyId: property.id },
+      data: { lastSyncedAt: now },
+    } as any);
+
     try {
       const result = await syncPropertyIcal(property.id);
 

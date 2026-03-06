@@ -24,6 +24,13 @@ vi.mock('@infra/ical/sync', () => ({
   syncPropertyIcalCalendar: vi.fn(),
 }));
 
+vi.mock('@/lib/admin-auth', () => ({
+  getAuthenticatedAdminEmail: vi.fn().mockResolvedValue('owner@example.com'),
+  ensureAppUserByEmail: vi.fn().mockResolvedValue({ id: 'user_1', email: 'owner@example.com' }),
+  canManagePropertyByEmail: vi.fn().mockResolvedValue(true),
+  getAuthorizedPropertiesByEmail: vi.fn().mockResolvedValue([]),
+}));
+
 describe('admin properties actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

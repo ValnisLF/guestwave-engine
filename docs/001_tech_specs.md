@@ -8,7 +8,8 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 
 ## 🛠️ Stack Tecnológico
 - **Framework:** Next.js 16.1.6 (TypeScript).
-- **Base de Datos & Auth:** Supabase (PostgreSQL + RLS).
+- **Base de Datos:** PostgreSQL (Supabase como hosting de DB).
+- **Auth Backoffice:** Auth local de aplicación (email/password hasheado + sesión por cookie en DB).
 - **Componentes:** Shadcn/UI + Tailwind CSS.
 - **Pagos:** Stripe Checkout (Soporte para pago total o depósito %).
 - **Emails:** Resend / SendGrid.
@@ -18,7 +19,7 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **Protocolo:** Uso de `library` o `binary` según estabilidad en Node 21.
 - **Workflow:** Prisma Client optimizado para el motor de Rust de la v6.
 - **TDD Integration:** Uso de un Schema de validación con Zod integrado mediante `zod-prisma-types` para asegurar que los datos del frontend coinciden con la DB.
-- **Features:** Uso de TypedSQL para consultas de disponibilidad y Middleware nativo para RLS de Supabase.
+- **Features:** Uso de TypedSQL para consultas de disponibilidad y Middleware nativo para control de sesión del Backoffice.
 
 ### Estado de Migración UI
 - El proyecto está migrando los componentes legacy a `shadcn/ui`.
@@ -31,8 +32,10 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **Caching:** Uso de la nueva API de cache de Next 16 para los resultados de iCal y precios.
 
 ## 🔒 Estrategia de Seguridad
-1. **Middleware:** Controla el acceso a `(admin)`. Si no hay sesión de Supabase Auth, redirige a `/login`.
-2. **RLS (Row Level Security):** La base de datos solo permite que un `owner_id` vea sus propias `properties` y `bookings`.
+1. **Middleware:** Controla el acceso a `/admin/*` usando cookie de sesión local (`gw_admin_session`) y redirige a `/admin/login` si no hay sesión.
+2. **Roles de usuario:**
+	- `ADMIN`: crea propiedades (alta simple name/slug) e invita usuarios `OWNER` por email.
+	- `OWNER`: gestiona las propiedades que tiene asociadas mediante membresías.
 3. **Guest Access:** Los huéspedes acceden a `/reserva/[id]` validando el `guest_token` (UUID) contra la base de datos, sin necesidad de login.
 
 ## 💾 Modelado de Datos (Esquema Principal)
@@ -45,7 +48,7 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 1. **Prevención de Overbooking:** Toda reserva confirmada debe insertar bloqueos en `blocked_dates` mediante una transacción de base de datos.
 2. **Cálculo de Precios:** Siempre se calcula en el Servidor (Server Action), nunca se confía en el precio del cliente. La lógica reside en `lib/pricing.ts` para ser usada tanto en el Checkout como en el Admin.
 3. **Sincronización:** El sistema debe consumir feeds iCal externos para bloquear fechas locales.
-4. **Seguridad:** Rutas `/admin/*` protegidas por Middleware de Supabase Auth.
+4. **Seguridad:** Rutas `/admin/*` protegidas por Middleware y autorización por rol/membresía.
 5. **Atomicidad:** El bloqueo de fechas se hace mediante Transacciones SQL tras el Webhook de Stripe.
 
 ## 🧪 Estrategia de Testing (TDD)

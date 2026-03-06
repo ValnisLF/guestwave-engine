@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createProperty,
+  createPropertyInvite,
   createPropertyIcalCalendar,
   createSeasonRate,
   deleteProperty,
@@ -143,6 +144,9 @@ export function InventoryPricingAdmin({
   const [newCalendarNameByProperty, setNewCalendarNameByProperty] = useState<Record<string, string>>({});
   const [newCalendarUrlByProperty, setNewCalendarUrlByProperty] = useState<Record<string, string>>({});
   const [autoSyncIntervalByProperty, setAutoSyncIntervalByProperty] = useState<Record<string, string>>({});
+  const [inviteEmailByProperty, setInviteEmailByProperty] = useState<Record<string, string>>({});
+  const [inviteRoleByProperty, setInviteRoleByProperty] = useState<Record<string, 'OWNER'>>({});
+  const [invitingPropertyId, setInvitingPropertyId] = useState<string | null>(null);
 
   const properties = useMemo(() => initialProperties, [initialProperties]);
 
@@ -538,6 +542,32 @@ export function InventoryPricingAdmin({
     router.refresh();
   };
 
+  const onInviteMember = async (propertyId: string) => {
+    const email = (inviteEmailByProperty[propertyId] ?? '').trim();
+    const role = inviteRoleByProperty[propertyId] ?? 'OWNER';
+
+    if (!email) {
+      setError('Invite email is required');
+      return;
+    }
+
+    setInvitingPropertyId(propertyId);
+    setError(null);
+
+    const result = await createPropertyInvite({ propertyId, email, role });
+
+    setInvitingPropertyId(null);
+
+    if (!result.success) {
+      setError(result.error ?? 'Error sending invite');
+      return;
+    }
+
+    setInviteEmailByProperty((prev) => ({ ...prev, [propertyId]: '' }));
+    setInviteRoleByProperty((prev) => ({ ...prev, [propertyId]: 'OWNER' }));
+    setSyncMessage('Invite created and email sent (or queued) successfully');
+  };
+
   return (
     <div className="space-y-8 text-slate-900">
       {error && (
@@ -765,6 +795,48 @@ export function InventoryPricingAdmin({
                 >
                   {deletingPropertyId === property.id ? 'Eliminando...' : 'Eliminar propiedad'}
                 </Button>
+              </div>
+
+              <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="text-sm font-semibold text-slate-900">Invite collaborator</div>
+                <p className="mt-1 text-xs text-slate-600">
+                  Invite-only access: collaborators can only manage the selected property.
+                </p>
+
+                <div className="mt-2 grid gap-2 md:grid-cols-4">
+                  <Input
+                    className="md:col-span-2"
+                    type="email"
+                    placeholder="collaborator@example.com"
+                    value={inviteEmailByProperty[property.id] ?? ''}
+                    onChange={(e) =>
+                      setInviteEmailByProperty((prev) => ({
+                        ...prev,
+                        [property.id]: e.target.value,
+                      }))
+                    }
+                  />
+
+                  <Select
+                    value={inviteRoleByProperty[property.id] ?? 'OWNER'}
+                    onChange={(e) =>
+                      setInviteRoleByProperty((prev) => ({
+                        ...prev,
+                        [property.id]: e.target.value as 'OWNER',
+                      }))
+                    }
+                  >
+                    <option value="OWNER">Owner</option>
+                  </Select>
+
+                  <Button
+                    type="button"
+                    disabled={invitingPropertyId === property.id}
+                    onClick={() => onInviteMember(property.id)}
+                  >
+                    {invitingPropertyId === property.id ? 'Sending...' : 'Send invite'}
+                  </Button>
+                </div>
               </div>
 
               {confirmDeletePropertyId === property.id && (

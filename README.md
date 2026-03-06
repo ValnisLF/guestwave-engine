@@ -25,3 +25,21 @@ The project already includes `@/lib/utils` (`cn`) and base primitives under `com
 Notes:
 - E2E tests require a working `DATABASE_URL`.
 - Tests start the app automatically via `pnpm dev`.
+
+## Backoffice Access
+
+- Backoffice auth is local to this app (not Supabase dashboard users).
+- First time setup: open `/admin/setup` to create the first system admin user.
+- Daily access: `/admin/login`.
+- Admin home `/admin` now includes quick actions to:
+	- create properties
+	- invite collaborators as `OWNER` or `MANAGER`
+
+## Invite Email Setup (Resend)
+
+To make invitation emails work, configure both:
+
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL` (must be a verified sender/domain in Resend)
+
+If sending fails, the app still creates the invite and shows the manual invite link (`/admin/invite/<token>`) in the UI so you can share it directly.
