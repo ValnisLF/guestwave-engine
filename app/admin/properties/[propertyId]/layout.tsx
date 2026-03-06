@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { prisma } from '@infra/prisma';
@@ -44,6 +45,13 @@ export default async function PropertyWorkspaceLayout({ children, params }: Layo
     redirect('/admin');
   }
 
+  const username = email
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(' ');
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-6 lg:grid-cols-[260px_1fr]">
@@ -73,7 +81,28 @@ export default async function PropertyWorkspaceLayout({ children, params }: Layo
           </div>
         </aside>
 
-        <main>{children}</main>
+        <main className="space-y-4">
+          <header className="flex items-center justify-end rounded-lg border border-slate-200 bg-white px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-xs text-slate-500">Usuario conectado</div>
+                <div className="text-sm font-semibold text-slate-900">{username || email}</div>
+              </div>
+              <div className="h-11 w-11 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                <Image
+                  src="/avatar-placeholder.svg"
+                  alt="Avatar placeholder"
+                  width={44}
+                  height={44}
+                  className="h-full w-full object-cover"
+                  priority
+                />
+              </div>
+            </div>
+          </header>
+
+          {children}
+        </main>
       </div>
     </div>
   );
