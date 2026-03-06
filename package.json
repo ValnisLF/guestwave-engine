@@ -19,7 +19,8 @@
     "db:push": "prisma db push",
     "db:pull": "prisma db pull",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "autosync:local": "bash ./scripts/local-auto-sync.sh"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

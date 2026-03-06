@@ -36,3 +36,56 @@ UI convention:
 
 - The project UI component library standard is `shadcn/ui` (with Tailwind CSS).
 - For new UI features, prefer `shadcn/ui` components over custom primitives when possible.
+
+## Primeros 10 minutos
+
+Checklist rapido para un desarrollador nuevo:
+
+1. Preparar entorno local
+```bash
+cp .env.example .env.local
+pnpm install
+pnpm db:push
+```
+
+2. Arrancar app
+```bash
+pnpm dev
+```
+
+3. Crear primer usuario admin local
+- Abre `http://localhost:3000/admin/setup`
+- Crea el primer usuario ADMIN (email + password)
+
+4. Crear propiedad y entrar al workspace
+- Abre `http://localhost:3000/admin`
+- Crea una propiedad
+- Entra a `Manage` y abre la seccion `Calendario`
+
+5. Vincular al menos un calendario iCal
+- En `Calendario`, agrega nombre + URL `.ics`
+- Pulsa `Sync` para una primera sincronizacion manual
+
+6. Activar Auto-sync de la propiedad
+- En `Calendario`, bloque `Auto-sync`
+- Define intervalo (minimo 5 min)
+- Pulsa `Activar`
+
+7. Simular cron en local
+```bash
+pnpm autosync:local
+```
+
+8. Validar estado en UI
+- `Ultimo intento`: confirma que el disparo de auto-sync se esta ejecutando
+- `Ultimo exito`: confirma que la sincronizacion iCal termina correctamente
+
+9. (Opcional) Probar endpoint manualmente
+```bash
+curl -X POST http://localhost:3000/api/internal/ical/auto-sync
+```
+
+10. Ejecutar suite rapida de verificacion
+```bash
+pnpm test
+```

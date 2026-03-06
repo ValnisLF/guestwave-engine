@@ -43,3 +43,45 @@ To make invitation emails work, configure both:
 - `RESEND_FROM_EMAIL` (must be a verified sender/domain in Resend)
 
 If sending fails, the app still creates the invite and shows the manual invite link (`/admin/invite/<token>`) in the UI so you can share it directly.
+
+## iCal Auto-Sync (Onboarding)
+
+How auto-sync works in this project:
+
+- **Production (Vercel):** cron is configured in `vercel.json` and calls `/api/internal/ical/auto-sync` every 5 minutes.
+- **Local development:** no scheduler runs automatically. You must call the endpoint manually or run the local loop script.
+
+Requirements per property:
+
+- `Auto-sync` enabled in backoffice (`/admin/properties/[propertyId]/calendario`)
+- Interval configured (minimum 5 minutes)
+- At least one linked iCal calendar
+
+Useful commands:
+
+```bash
+# One-shot trigger (local)
+curl -X POST http://localhost:3000/api/internal/ical/auto-sync
+
+# One-shot trigger with token header (if configured)
+curl -X POST http://localhost:3000/api/internal/ical/auto-sync \
+	-H "x-ical-auto-sync-token: $ICAL_AUTO_SYNC_TOKEN"
+
+# Continuous local loop (every 5 minutes by default)
+pnpm autosync:local
+```
+
+Customize local loop:
+
+```bash
+# Run every 60 seconds against local dev server
+AUTO_SYNC_INTERVAL_SECONDS=60 pnpm autosync:local
+
+# Use token-protected endpoint
+ICAL_AUTO_SYNC_TOKEN="<your-token>" pnpm autosync:local
+```
+
+Calendar status semantics shown in UI:
+
+- `Ultimo intento`: last cron/manual attempt heartbeat.
+- `Ultimo exito`: last successful iCal synchronization.

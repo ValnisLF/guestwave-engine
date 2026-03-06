@@ -181,9 +181,36 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY; // ✅ OK (solo server)
 3. Envía el header:
    - `x-ical-auto-sync-token: <ICAL_AUTO_SYNC_TOKEN>`
 
+Notas importantes para nuevos desarrolladores:
+
+- En **producción**, Vercel Cron ejecuta automáticamente el endpoint según `vercel.json`.
+- En **local**, el cron de Vercel no corre. Hay que disparar el endpoint manualmente o con el script local.
+- Los campos de UI significan:
+   - `Ultimo intento`: último disparo de auto-sync para ese calendario.
+   - `Ultimo exito`: última sincronización completada con éxito.
+
 Ejemplo local:
 ```bash
 curl -X POST http://localhost:3000/api/internal/ical/auto-sync \
   -H "x-ical-auto-sync-token: $ICAL_AUTO_SYNC_TOKEN"
 ```
+
+Ejemplo recomendado en local (loop continuo):
+```bash
+# Cada 5 min por defecto
+pnpm autosync:local
+
+# Cada 60 segundos
+AUTO_SYNC_INTERVAL_SECONDS=60 pnpm autosync:local
+
+# Usando token en header
+ICAL_AUTO_SYNC_TOKEN="<token>" pnpm autosync:local
+```
+
+Variables opcionales del script `scripts/local-auto-sync.sh`:
+
+- `AUTO_SYNC_URL` (default: `http://localhost:3000/api/internal/ical/auto-sync`)
+- `AUTO_SYNC_INTERVAL_SECONDS` (default: `300`)
+- `AUTO_SYNC_METHOD` (default: `POST`)
+- `ICAL_AUTO_SYNC_TOKEN` (default: vacío)
 
