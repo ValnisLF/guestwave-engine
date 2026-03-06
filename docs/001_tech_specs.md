@@ -20,6 +20,11 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 - **TDD Integration:** Uso de un Schema de validación con Zod integrado mediante `zod-prisma-types` para asegurar que los datos del frontend coinciden con la DB.
 - **Features:** Uso de TypedSQL para consultas de disponibilidad y Middleware nativo para RLS de Supabase.
 
+### Estado de Migración UI
+- El proyecto está migrando los componentes legacy a `shadcn/ui`.
+- Convención para nuevas pantallas: usar componentes desde `components/ui/*`.
+- Utilidad común de clases: `@/lib/utils` con helper `cn(...)`.
+
 ## 🚀 Next.js 16.1.6 Specifics
 - **Form Actions:** Uso de `useActionState` para formularios de reserva y admin (sustituye a `useFormState`).
 - **PPR (Partial Prerendering):** Habilitado para que la Landing Page sea estática pero el calendario de disponibilidad sea dinámico (Isla de dinamismo).

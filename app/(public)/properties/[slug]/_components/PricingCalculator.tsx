@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { createCheckoutSession, estimatePrice } from '@/app/api/booking/_actions';
-import { Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { Calendar, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
 
 interface PricingCalculatorProps {
   propertyId: string;
@@ -198,35 +202,31 @@ export function PricingCalculator({
           Minimum stay: {minimumStay} night{minimumStay > 1 ? 's' : ''}
         </div>
         <div>
-          <label htmlFor="check-in" className="block text-sm font-medium text-slate-700 mb-1">
-            Check-in
-          </label>
+          <Label htmlFor="check-in" className="mb-1 block">Check-in</Label>
           <div className="relative">
             <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <input
+            <Input
               id="check-in"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               min={getMinDate()}
-              className="w-full bg-white text-slate-900 pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="check-out" className="block text-sm font-medium text-slate-700 mb-1">
-            Check-out
-          </label>
+          <Label htmlFor="check-out" className="mb-1 block">Check-out</Label>
           <div className="relative">
             <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <input
+            <Input
               id="check-out"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate || getMinDate()}
-              className="w-full bg-white text-slate-900 pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10"
             />
           </div>
         </div>
@@ -234,33 +234,31 @@ export function PricingCalculator({
 
       {/* Error Message */}
       {error && (
-        <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <Alert variant="destructive" className="flex gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="space-y-3">
         <div>
-          <label htmlFor="guest-name" className="block text-sm font-medium text-slate-700 mb-1">Guest name</label>
-          <input
+          <Label htmlFor="guest-name" className="mb-1 block">Guest name</Label>
+          <Input
             id="guest-name"
             type="text"
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             placeholder="Your full name"
-            className="w-full bg-white text-slate-900 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
-          <label htmlFor="guest-email" className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-          <input
+          <Label htmlFor="guest-email" className="mb-1 block">Email</Label>
+          <Input
             id="guest-email"
             type="email"
             value={guestEmail}
             onChange={(e) => setGuestEmail(e.target.value)}
             placeholder="you@email.com"
-            className="w-full bg-white text-slate-900 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -335,10 +333,10 @@ export function PricingCalculator({
       )}
 
       {/* CTA Button */}
-      <button
+      <Button
         onClick={handleCheckout}
         disabled={!pricing || loading || checkoutLoading || startDate === '' || endDate === ''}
-        className="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed mt-4"
+        className="mt-4 w-full"
       >
         {loading
           ? 'Calculating...'
@@ -349,7 +347,7 @@ export function PricingCalculator({
             : isMockCheckoutEnabled
               ? 'Book Now (Test Mode)'
               : 'Book Now'}
-      </button>
+                  </Button>
 
       <p className="text-xs text-slate-500 text-center">
         {isMockCheckoutEnabled

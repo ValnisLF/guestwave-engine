@@ -26,13 +26,15 @@ function addDays(date: Date, days: number): Date {
 }
 
 async function fillValidDates(page: Page, startOffsetDays = 1) {
-  const tomorrow = atNoon(new Date());
-  tomorrow.setDate(tomorrow.getDate() + startOffsetDays);
+  const minAttr = await page.getByLabel('Check-in').getAttribute('min');
 
-  const checkout = new Date(tomorrow);
+  const baseDate = minAttr ? atNoon(new Date(minAttr)) : atNoon(new Date());
+  baseDate.setDate(baseDate.getDate() + Math.max(0, startOffsetDays - 1));
+
+  const checkout = new Date(baseDate);
   checkout.setDate(checkout.getDate() + 2);
 
-  await page.getByLabel('Check-in').fill(toInputDate(tomorrow));
+  await page.getByLabel('Check-in').fill(toInputDate(baseDate));
   await page.getByLabel('Check-out').fill(toInputDate(checkout));
 }
 

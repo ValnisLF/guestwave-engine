@@ -31,3 +31,8 @@ Convenciones importantes:
 - Los contenedores de feature deben exportar un componente principal cuyo nombre coincide con el feature.
 - Las utilidades compartidas se colocan en `src/shared` únicamente si son usadas por 2+ features.
 - Los tests unitarios se colocan junto a la feature (`src/features/X/X.test.ts`).
+
+UI convention:
+
+- The project UI component library standard is `shadcn/ui` (with Tailwind CSS).
+- For new UI features, prefer `shadcn/ui` components over custom primitives when possible.

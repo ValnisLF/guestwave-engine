@@ -16,6 +16,13 @@ import {
   updatePropertyAutoSyncSettings,
   updatePropertyIcalCalendar,
 } from '../_actions';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 type SeasonRateView = {
   id: string;
@@ -534,54 +541,50 @@ export function InventoryPricingAdmin({
   return (
     <div className="space-y-8 text-slate-900">
       {error && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-          {error}
-        </div>
+        <Alert variant="destructive">{error}</Alert>
       )}
 
       {syncMessage && (
-        <div className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-700">
-          {syncMessage}
-        </div>
+        <Alert variant="success">{syncMessage}</Alert>
       )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">Alta de Propiedad</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Alta de Propiedad</CardTitle>
+        </CardHeader>
+        <CardContent>
 
         <form onSubmit={onCreateProperty} className="grid gap-4 md:grid-cols-2">
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             placeholder="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             placeholder="slug-ejemplo"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             required
           />
 
-          <textarea
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400 md:col-span-2"
+          <Textarea
+            className="md:col-span-2"
             placeholder="Descripción"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
 
-          <textarea
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400 md:col-span-2"
+          <Textarea
+            className="md:col-span-2"
             placeholder="URLs de fotos (separadas por coma o salto de línea)"
             value={imageUrlsText}
             onChange={(e) => setImageUrlsText(e.target.value)}
             rows={3}
           />
 
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={1}
             step="0.01"
@@ -590,8 +593,7 @@ export function InventoryPricingAdmin({
             onChange={(e) => setBasePrice(e.target.value)}
             required
           />
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={0}
             step="0.01"
@@ -600,8 +602,7 @@ export function InventoryPricingAdmin({
             onChange={(e) => setCleaningFee(e.target.value)}
           />
 
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={1}
             step={1}
@@ -609,8 +610,7 @@ export function InventoryPricingAdmin({
             value={minimumStay}
             onChange={(e) => setMinimumStay(e.target.value)}
           />
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={0}
             max={100}
@@ -625,8 +625,7 @@ export function InventoryPricingAdmin({
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
               {AMENITIES_CATALOG.map((amenityKey) => (
                 <label key={amenityKey} className="flex items-center gap-2 text-sm text-slate-800">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={Boolean(amenities[amenityKey])}
                     onChange={() => handleAmenityToggle(amenityKey)}
                   />
@@ -636,33 +635,37 @@ export function InventoryPricingAdmin({
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={savingProperty}
-            className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50 md:col-span-2"
+            className="md:col-span-2"
           >
             {savingProperty ? 'Guardando...' : 'Crear propiedad'}
-          </button>
+          </Button>
         </form>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-xl font-semibold text-slate-900">Gestión de Tarifas por Temporada</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Gestión de Tarifas por Temporada</CardTitle>
+        </CardHeader>
+        <CardContent>
 
         <div className="mb-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onSyncAll}
             disabled={syncing}
-            className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             {syncing ? 'Syncing calendars...' : 'Sync all iCal calendars'}
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={onCreateSeasonRate} className="grid gap-4 md:grid-cols-3">
-          <select
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 md:col-span-3"
+          <Select
+            className="md:col-span-3"
             value={selectedPropertyId}
             onChange={(e) => setSelectedPropertyId(e.target.value)}
             required
@@ -676,24 +679,21 @@ export function InventoryPricingAdmin({
                 </option>
               ))
             )}
-          </select>
+          </Select>
 
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          <Input
             type="date"
             value={seasonStartDate}
             onChange={(e) => setSeasonStartDate(e.target.value)}
             required
           />
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          <Input
             type="date"
             value={seasonEndDate}
             onChange={(e) => setSeasonEndDate(e.target.value)}
             required
           />
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={0.1}
             step="0.01"
@@ -702,8 +702,7 @@ export function InventoryPricingAdmin({
             onChange={(e) => setSeasonMultiplier(e.target.value)}
           />
 
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={0}
             step="0.01"
@@ -712,17 +711,15 @@ export function InventoryPricingAdmin({
             onChange={(e) => setSeasonFixedPrice(e.target.value)}
           />
 
-          <select
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          <Select
             value={seasonPaymentMode}
             onChange={(e) => setSeasonPaymentMode(e.target.value as 'FULL' | 'DEPOSIT')}
           >
             <option value="DEPOSIT">Pago con depósito</option>
             <option value="FULL">Pago 100%</option>
-          </select>
+          </Select>
 
-          <input
-            className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
+          <Input
             type="number"
             min={0}
             max={100}
@@ -733,13 +730,13 @@ export function InventoryPricingAdmin({
             onChange={(e) => setSeasonDepositPercentage(e.target.value)}
           />
 
-          <button
+          <Button
             type="submit"
             disabled={savingSeason || !selectedPropertyId}
-            className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50 md:col-span-3"
+            className="md:col-span-3"
           >
             {savingSeason ? 'Guardando...' : 'Crear temporada'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 space-y-4">
@@ -751,21 +748,23 @@ export function InventoryPricingAdmin({
               </p>
 
               <div className="mt-2 flex flex-wrap gap-2">
-                <button
+                <Button
                   type="button"
-                  className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                  variant="outline"
+                  size="sm"
                   onClick={() => onStartEditProperty(property)}
                 >
                   Editar propiedad
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  variant="destructive"
+                  size="sm"
                   disabled={Boolean(deletingPropertyId)}
                   onClick={() => setConfirmDeletePropertyId(property.id)}
                 >
                   {deletingPropertyId === property.id ? 'Eliminando...' : 'Eliminar propiedad'}
-                </button>
+                </Button>
               </div>
 
               {confirmDeletePropertyId === property.id && (
@@ -777,22 +776,24 @@ export function InventoryPricingAdmin({
                     Nota: si hay reservas activas, el sistema bloqueará la eliminación.
                   </p>
                   <div className="mt-2 flex gap-2">
-                    <button
+                    <Button
                       type="button"
-                      className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      variant="destructive"
+                      size="sm"
                       disabled={deletingPropertyId === property.id}
                       onClick={() => onDeleteProperty(property.id)}
                     >
                       {deletingPropertyId === property.id ? 'Eliminando...' : 'Confirmar eliminar'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                      variant="outline"
+                      size="sm"
                       disabled={deletingPropertyId === property.id}
                       onClick={() => setConfirmDeletePropertyId(null)}
                     >
                       Cancelar
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -803,16 +804,14 @@ export function InventoryPricingAdmin({
                     <h4 className="mb-3 text-base font-semibold text-slate-900">Editar propiedad</h4>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         placeholder="Nombre"
                         value={propertyDraftById[property.id]?.name ?? ''}
                         onChange={(e) =>
                           onUpdatePropertyDraftField(property.id, 'name', e.target.value)
                         }
                       />
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         placeholder="Slug"
                         value={propertyDraftById[property.id]?.slug ?? ''}
                         onChange={(e) =>
@@ -820,8 +819,8 @@ export function InventoryPricingAdmin({
                         }
                       />
 
-                      <textarea
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                      <Textarea
+                        className="md:col-span-2"
                         rows={3}
                         placeholder="Descripción"
                         value={propertyDraftById[property.id]?.description ?? ''}
@@ -830,8 +829,8 @@ export function InventoryPricingAdmin({
                         }
                       />
 
-                      <textarea
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                      <Textarea
+                        className="md:col-span-2"
                         rows={3}
                         placeholder="URLs de fotos (coma o salto de línea)"
                         value={propertyDraftById[property.id]?.imageUrlsText ?? ''}
@@ -840,8 +839,7 @@ export function InventoryPricingAdmin({
                         }
                       />
 
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         type="number"
                         min={1}
                         step="0.01"
@@ -851,8 +849,7 @@ export function InventoryPricingAdmin({
                           onUpdatePropertyDraftField(property.id, 'basePrice', e.target.value)
                         }
                       />
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         type="number"
                         min={0}
                         step="0.01"
@@ -863,8 +860,7 @@ export function InventoryPricingAdmin({
                         }
                       />
 
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         type="number"
                         min={1}
                         step={1}
@@ -874,8 +870,7 @@ export function InventoryPricingAdmin({
                           onUpdatePropertyDraftField(property.id, 'minimumStay', e.target.value)
                         }
                       />
-                      <input
-                        className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                      <Input
                         type="number"
                         min={0}
                         max={100}
@@ -892,8 +887,7 @@ export function InventoryPricingAdmin({
                         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
                           {AMENITIES_CATALOG.map((amenityKey) => (
                             <label key={`${property.id}-${amenityKey}`} className="flex items-center gap-2 text-sm text-slate-800">
-                              <input
-                                type="checkbox"
+                              <Checkbox
                                 checked={Boolean(propertyDraftById[property.id]?.amenities?.[amenityKey])}
                                 onChange={() => onTogglePropertyDraftAmenity(property.id, amenityKey)}
                               />
@@ -905,21 +899,22 @@ export function InventoryPricingAdmin({
                     </div>
 
                     <div className="mt-3 flex gap-2">
-                      <button
+                      <Button
                         type="button"
-                        className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                        size="sm"
                         disabled={updatingPropertyId === property.id}
                         onClick={() => onSaveProperty(property.id)}
                       >
                         {updatingPropertyId === property.id ? 'Guardando...' : 'Guardar cambios'}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        variant="outline"
+                        size="sm"
                         onClick={() => onCancelEditProperty(property.id)}
                       >
                         Cancelar
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -939,8 +934,8 @@ export function InventoryPricingAdmin({
                   <div className="mt-3 flex flex-wrap items-end gap-2">
                     <label className="text-xs text-slate-700">
                       Intervalo (min)
-                      <input
-                        className="ml-2 w-24 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900"
+                      <Input
+                        className="ml-2 inline-flex h-7 w-24 px-2 py-1 text-xs"
                         type="number"
                         min={5}
                         max={1440}
@@ -950,23 +945,25 @@ export function InventoryPricingAdmin({
                       />
                     </label>
 
-                    <button
+                    <Button
                       type="button"
-                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      variant="outline"
+                      size="sm"
                       disabled={savingAutoSyncPropertyId === property.id || property.autoSyncEnabled}
                       onClick={() => onSaveAutoSyncSettings(property, true)}
                     >
                       {savingAutoSyncPropertyId === property.id ? 'Guardando...' : 'Activar auto-sync'}
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                       type="button"
-                      className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      variant="outline"
+                      size="sm"
                       disabled={savingAutoSyncPropertyId === property.id || !property.autoSyncEnabled}
                       onClick={() => onSaveAutoSyncSettings(property, false)}
                     >
                       {savingAutoSyncPropertyId === property.id ? 'Guardando...' : 'Desactivar auto-sync'}
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="mt-2 text-xs text-slate-600">
@@ -986,20 +983,20 @@ export function InventoryPricingAdmin({
                     <div key={calendar.id} className="rounded border border-slate-200 bg-white p-3">
                       {editingCalendarId === calendar.id ? (
                         <div className="space-y-2">
-                          <input
-                            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                          <Input
+                            className="w-full"
                             value={editCalendarName}
                             onChange={(e) => setEditCalendarName(e.target.value)}
                             placeholder="Nombre del calendario"
                           />
-                          <input
-                            className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                          <Input
+                            className="w-full"
                             value={editCalendarUrl}
                             onChange={(e) => setEditCalendarUrl(e.target.value)}
                             placeholder="https://.../calendar.ics"
                           />
                           <div className="flex gap-2">
-                            <button
+                            <Button
                               type="button"
                               onClick={onSaveEditCalendar}
                               disabled={
@@ -1008,21 +1005,23 @@ export function InventoryPricingAdmin({
                                 !editCalendarUrl.trim() ||
                                 !isValidIcalUrl(editCalendarUrl)
                               }
-                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              variant="outline"
+                              size="sm"
                             >
                               {updatingCalendar ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
                               onClick={() => {
                                 setEditingCalendarId(null);
                                 setEditCalendarName('');
                                 setEditCalendarUrl('');
                               }}
-                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                              variant="outline"
+                              size="sm"
                             >
                               Cancelar
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ) : (
@@ -1036,29 +1035,32 @@ export function InventoryPricingAdmin({
                               : 'Nunca'}
                           </div>
                           <div className="flex gap-2">
-                            <button
+                            <Button
                               type="button"
-                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              variant="outline"
+                              size="sm"
                               disabled={syncing}
                               onClick={() => onSyncCalendar(calendar.id)}
                             >
                               {syncing ? 'Actualizando...' : 'Actualizar'}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
-                              className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                              variant="outline"
+                              size="sm"
                               onClick={() => onStartEditCalendar(calendar)}
                             >
                               Editar
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
-                              className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                              variant="destructive"
+                              size="sm"
                               disabled={deletingCalendar}
                               onClick={() => setConfirmDeleteCalendarId(calendar.id)}
                             >
                               {deletingCalendar ? 'Desvinculando...' : 'Desvincular'}
-                            </button>
+                            </Button>
                           </div>
 
                           {confirmDeleteCalendarId === calendar.id && (
@@ -1067,22 +1069,24 @@ export function InventoryPricingAdmin({
                                 ¿Seguro que deseas desvincular este calendario? Se eliminarán también sus bloqueos importados.
                               </p>
                               <div className="mt-2 flex gap-2">
-                                <button
+                                <Button
                                   type="button"
-                                  className="rounded border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                                  variant="destructive"
+                                  size="sm"
                                   disabled={deletingCalendar}
                                   onClick={() => onDeleteCalendar(calendar.id)}
                                 >
                                   {deletingCalendar ? 'Desvinculando...' : 'Confirmar desvincular'}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   type="button"
-                                  className="rounded border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                                  variant="outline"
+                                  size="sm"
                                   disabled={deletingCalendar}
                                   onClick={() => setConfirmDeleteCalendarId(null)}
                                 >
                                   Cancelar
-                                </button>
+                                </Button>
                               </div>
                             </div>
                           )}
@@ -1093,8 +1097,8 @@ export function InventoryPricingAdmin({
                 </div>
 
                 <div className="mt-4 grid gap-2 md:grid-cols-3">
-                  <input
-                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-1"
+                  <Input
+                    className="md:col-span-1"
                     placeholder="Nombre del calendario"
                     value={newCalendarNameByProperty[property.id] ?? ''}
                     onChange={(e) =>
@@ -1104,8 +1108,8 @@ export function InventoryPricingAdmin({
                       }))
                     }
                   />
-                  <input
-                    className="rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 md:col-span-2"
+                  <Input
+                    className="md:col-span-2"
                     placeholder="https://.../calendar.ics"
                     value={newCalendarUrlByProperty[property.id] ?? ''}
                     onChange={(e) =>
@@ -1117,9 +1121,9 @@ export function InventoryPricingAdmin({
                   />
                 </div>
                 <div className="mt-2">
-                  <button
+                  <Button
                     type="button"
-                    className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    size="sm"
                     disabled={
                       savingCalendar ||
                       !(newCalendarNameByProperty[property.id] ?? '').trim() ||
@@ -1129,19 +1133,20 @@ export function InventoryPricingAdmin({
                     onClick={() => onAddCalendar(property.id)}
                   >
                     {savingCalendar ? 'Añadiendo...' : 'Añadir el calendario'}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               <div className="mt-3">
-                <button
+                <Button
                   type="button"
-                  className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                  variant="outline"
+                  size="sm"
                   disabled={syncing}
                   onClick={() => onSyncProperty(property.id)}
                 >
                   Sincronizar todos los calendarios de esta propiedad
-                </button>
+                </Button>
               </div>
 
               <div className="mt-3 space-y-2">
@@ -1157,20 +1162,23 @@ export function InventoryPricingAdmin({
                       {' '}pay: {rate.paymentMode ?? 'DEFAULT'}
                       {rate.paymentMode === 'DEPOSIT' ? ` (${rate.depositPercentage ?? 0}%)` : ''}
                     </span>
-                    <button
+                    <Button
                       type="button"
-                      className="text-red-600"
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
                       onClick={() => onDeleteSeasonRate(rate.id)}
                     >
                       Eliminar
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             </div>
           ))}
         </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export function PropertyCalendar({
   unavailableDates,
@@ -96,10 +98,12 @@ export function PropertyCalendar({
       const disabled = unavailable || pastDate;
 
       days.push(
-        <button
+        <Button
           key={day}
           data-date={dateKey}
           aria-label={dateKey}
+          variant="ghost"
+          size="sm"
           onClick={() => {
             if (!selectedStart || (selectedStart && selectedEnd)) {
               setSelectedStart(date);
@@ -124,7 +128,7 @@ export function PropertyCalendar({
           }`}
         >
           {day}
-        </button>
+        </Button>
       );
     }
 
@@ -151,24 +155,29 @@ export function PropertyCalendar({
   return (
     <div className="space-y-4 text-slate-900">
       {/* Calendar */}
-      <div className="border border-slate-200 rounded-lg p-4 bg-white">
+      <Card>
+        <CardContent className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-semibold text-slate-900">{monthYear}</h3>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={handlePrevMonth}
               aria-label="Previous month"
-              className="p-1 text-slate-700 hover:bg-slate-100 rounded"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-700"
             >
               <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleNextMonth}
               aria-label="Next month"
-              className="p-1 text-slate-700 hover:bg-slate-100 rounded"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-700"
             >
               <ChevronRight className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -185,7 +194,8 @@ export function PropertyCalendar({
         <div className="grid grid-cols-7 gap-1">
           {renderCalendarDays()}
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Selected dates summary */}
       {selectedStart && (
