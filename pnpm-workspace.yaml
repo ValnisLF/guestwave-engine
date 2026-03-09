@@ -1,3 +1,10 @@
+packages:
+  - '.'
+  - 'apps/*'
+  - 'packages/*'
+  - 'services/*'
+  - 'libs/*'
+
 ignoredBuiltDependencies:
   - '@prisma/engines'
   - esbuild
