@@ -90,11 +90,11 @@ export async function POST(request: NextRequest) {
 
           await sendBookingEmail({
             to: confirmedBooking.guestEmail,
-            subject: `Reserva confirmada · ${confirmedBooking.property.name}`,
+            subject: `Reserva confirmada · ${confirmedBooking.property.name} · ${confirmedBooking.bookingCode}`,
             html: `
               <h2>Tu reserva esta confirmada</h2>
               <p><strong>Propiedad:</strong> ${confirmedBooking.property.name}</p>
-              <p><strong>Reserva:</strong> ${confirmedBooking.id}</p>
+              <p><strong>Codigo de reserva:</strong> ${confirmedBooking.bookingCode}</p>
               <p><strong>Check-in:</strong> ${confirmedBooking.checkIn.toLocaleDateString('es-ES')}</p>
               <p><strong>Check-out:</strong> ${confirmedBooking.checkOut.toLocaleDateString('es-ES')}</p>
               <p><strong>Importe total de la reserva:</strong> ${totalAmount.toFixed(2)} EUR</p>
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
             text: [
               'Tu reserva esta confirmada',
               `Propiedad: ${confirmedBooking.property.name}`,
-              `Reserva: ${confirmedBooking.id}`,
+              `Codigo de reserva: ${confirmedBooking.bookingCode}`,
               `Check-in: ${confirmedBooking.checkIn.toISOString().slice(0, 10)}`,
               `Check-out: ${confirmedBooking.checkOut.toISOString().slice(0, 10)}`,
               `Importe total de la reserva: ${totalAmount.toFixed(2)} EUR`,

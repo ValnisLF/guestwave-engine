@@ -77,6 +77,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingFindUniqueMock.mockResolvedValue({
       id: 'booking_1',
+      bookingCode: 'EF-2603-X8J2',
       propertyId: 'property_1',
       checkIn,
       checkOut,
@@ -97,6 +98,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingUpdateMock.mockResolvedValue({
       id: 'booking_1',
+      bookingCode: 'EF-2603-X8J2',
       propertyId: 'property_1',
       checkIn,
       checkOut,
@@ -151,9 +153,7 @@ describe('POST /api/webhooks/stripe', () => {
     expect(sendBookingEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'guest@example.com',
-        subject: 'Reserva confirmada · Villa Sol',
-        html: expect.stringContaining('Importe total de la reserva:</strong> 480.00 EUR'),
-        text: expect.stringContaining('Importe pendiente por pagar: 360.00 EUR'),
+        subject: 'Reserva confirmada · Villa Sol · EF-2603-X8J2',
         property: {
           smtpHost: 'smtp.owner.local',
           smtpPort: 587,
@@ -163,6 +163,11 @@ describe('POST /api/webhooks/stripe', () => {
         },
       })
     );
+    const sentPayload = sendBookingEmailMock.mock.calls[0]?.[0];
+    expect(sentPayload?.html).toContain('Codigo de reserva:</strong> EF-2603-X8J2');
+    expect(sentPayload?.html).toContain('Importe total de la reserva:</strong> 480.00 EUR');
+    expect(sentPayload?.text).toContain('Codigo de reserva: EF-2603-X8J2');
+    expect(sentPayload?.text).toContain('Importe pendiente por pagar: 360.00 EUR');
   });
 
   it('ignores completed checkout when booking is not found', async () => {
@@ -205,6 +210,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingFindUniqueMock.mockResolvedValue({
       id: 'booking_dup',
+      bookingCode: 'VL-2603-Z9K4',
       propertyId: 'property_dup',
       checkIn,
       checkOut,
@@ -225,6 +231,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingUpdateMock.mockResolvedValue({
       id: 'booking_dup',
+      bookingCode: 'VL-2603-Z9K4',
       propertyId: 'property_dup',
       checkIn,
       checkOut,
@@ -278,6 +285,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingFindUniqueMock.mockResolvedValueOnce({
       id: 'booking_nometa',
+      bookingCode: 'VN-2603-W3M7',
       propertyId: 'property_nometa',
       checkIn,
       checkOut,
@@ -298,6 +306,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingUpdateMock.mockResolvedValue({
       id: 'booking_nometa',
+      bookingCode: 'VN-2603-W3M7',
       propertyId: 'property_nometa',
       checkIn,
       checkOut,
@@ -367,6 +376,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingFindUniqueMock.mockResolvedValue({
       id: 'booking_no_email',
+      bookingCode: 'VS-2603-R7P2',
       propertyId: 'property_2',
       checkIn,
       checkOut,
@@ -387,6 +397,7 @@ describe('POST /api/webhooks/stripe', () => {
 
     bookingUpdateMock.mockResolvedValue({
       id: 'booking_no_email',
+      bookingCode: 'VS-2603-R7P2',
       propertyId: 'property_2',
       checkIn,
       checkOut,

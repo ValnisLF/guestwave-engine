@@ -32,10 +32,11 @@ export default async function PropertyDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ checkout?: string; bookingId?: string }>;
+  searchParams: Promise<{ checkout?: string; bookingCode?: string; bookingId?: string }>;
 }) {
   const { slug } = await params;
-  const { checkout, bookingId } = await searchParams;
+  const { checkout, bookingCode, bookingId } = await searchParams;
+  const publicBookingCode = bookingCode ?? bookingId;
 
   if (!slug) {
     notFound();
@@ -81,7 +82,7 @@ export default async function PropertyDetailPage({
       {checkout === 'success' && (
         <div className="mb-6 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-700">
           Booking created and payment completed successfully.
-          {bookingId ? ` Booking ID: ${bookingId}` : ''}
+          {publicBookingCode ? ` Booking code: ${publicBookingCode}` : ''}
         </div>
       )}
 

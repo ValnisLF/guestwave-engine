@@ -228,6 +228,38 @@ describe('admin properties actions', () => {
     expect(propertyFindUniqueMock).not.toHaveBeenCalled();
   });
 
+  it('updates booking prefix with normalization and validation', async () => {
+    propertyUpdateMock.mockResolvedValueOnce({ id: 'prop_1' });
+
+    const { updatePropertyBookingPrefix } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertyBookingPrefix({
+      propertyId: 'prop_1',
+      bookingPrefix: ' ef ',
+    });
+
+    expect(result.success).toBe(true);
+    expect(propertyUpdateMock).toHaveBeenCalledWith({
+      where: { id: 'prop_1' },
+      data: {
+        bookingPrefix: 'EF',
+      },
+    });
+  });
+
+  it('rejects booking prefix update when value is invalid', async () => {
+    const { updatePropertyBookingPrefix } = await import('@/app/admin/properties/_actions');
+
+    const result = await updatePropertyBookingPrefix({
+      propertyId: 'prop_1',
+      bookingPrefix: '1A',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Booking prefix must contain only letters');
+    expect(propertyUpdateMock).not.toHaveBeenCalled();
+  });
+
   it('updates SMTP settings using new password when provided', async () => {
     propertyFindUniqueMock.mockResolvedValueOnce({
       id: 'prop_1',
@@ -239,6 +271,7 @@ describe('admin properties actions', () => {
 
     const result = await updatePropertySmtpSettings({
       propertyId: 'prop_1',
+      bookingPrefix: ' ef ',
       smtpHost: ' smtp.host.local ',
       smtpPort: 587,
       smtpUser: ' smtp-user ',
@@ -250,6 +283,7 @@ describe('admin properties actions', () => {
     expect(propertyUpdateMock).toHaveBeenCalledWith({
       where: { id: 'prop_1' },
       data: {
+        bookingPrefix: 'EF',
         smtpHost: 'smtp.host.local',
         smtpPort: 587,
         smtpUser: 'smtp-user',
@@ -270,6 +304,7 @@ describe('admin properties actions', () => {
 
     const result = await updatePropertySmtpSettings({
       propertyId: 'prop_1',
+      bookingPrefix: 'AB',
       smtpHost: 'smtp.host.local',
       smtpPort: 2525,
       smtpUser: 'smtp-user',
@@ -281,6 +316,7 @@ describe('admin properties actions', () => {
     expect(propertyUpdateMock).toHaveBeenCalledWith({
       where: { id: 'prop_1' },
       data: {
+        bookingPrefix: 'AB',
         smtpHost: 'smtp.host.local',
         smtpPort: 2525,
         smtpUser: 'smtp-user',
@@ -300,6 +336,7 @@ describe('admin properties actions', () => {
 
     const result = await updatePropertySmtpSettings({
       propertyId: 'prop_1',
+      bookingPrefix: 'AB',
       smtpHost: 'smtp.host.local',
       smtpPort: 2525,
       smtpUser: 'smtp-user',
@@ -322,6 +359,7 @@ describe('admin properties actions', () => {
 
     const result = await testPropertySmtpConnection({
       propertyId: 'prop_1',
+      bookingPrefix: 'EF',
       smtpHost: 'smtp.host.local',
       smtpPort: 587,
       smtpUser: 'smtp-user',
@@ -357,6 +395,7 @@ describe('admin properties actions', () => {
 
     const result = await testPropertySmtpConnection({
       propertyId: 'prop_1',
+      bookingPrefix: 'EF',
       smtpHost: 'smtp.host.local',
       smtpPort: 465,
       smtpUser: 'smtp-user',
@@ -391,6 +430,7 @@ describe('admin properties actions', () => {
 
     const result = await testPropertySmtpConnection({
       propertyId: 'prop_1',
+      bookingPrefix: 'EF',
       smtpHost: 'smtp.host.local',
       smtpPort: 587,
       smtpUser: 'smtp-user',

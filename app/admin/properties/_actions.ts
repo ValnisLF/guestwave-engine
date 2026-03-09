@@ -14,7 +14,7 @@ import {
 import { sendBookingEmail } from '@/lib/mail';
 import { sendAdminInviteEmail } from '@infra/notifications/resend';
 import { randomUUID } from 'crypto';
-import { ZodError } from 'zod';
+import { z, ZodError } from 'zod';
 
 const propertyService = new PropertyService();
 
@@ -105,6 +105,7 @@ export type CreateManualBlockedDateInput = {
 
 export type UpdatePropertySmtpInput = {
   propertyId: string;
+  bookingPrefix: string;
   smtpHost: string;
   smtpPort: number;
   smtpUser: string;
@@ -116,16 +117,80 @@ export type TestPropertySmtpInput = UpdatePropertySmtpInput & {
   testToEmail?: string;
 };
 
+export type UpdatePropertyBookingPrefixInput = {
+  propertyId: string;
+  bookingPrefix: string;
+};
+
+const bookingPrefixSchema = z
+  .string()
+  .trim()
+  .min(2, 'Booking prefix must have at least 2 characters')
+  .max(3, 'Booking prefix must have at most 3 characters')
+  .regex(/^[A-Za-z]+$/, 'Booking prefix must contain only letters')
+  .transform((value) => value.toUpperCase());
+
+const updatePropertySmtpSchema = z.object({
+  propertyId: z.string().min(1, 'Property id is required'),
+  bookingPrefix: bookingPrefixSchema,
+  smtpHost: z.string().trim().min(1, 'SMTP host is required'),
+  smtpPort: z.number().int().min(1).max(65535),
+  smtpUser: z.string().trim().min(1, 'SMTP user is required'),
+  smtpPassword: z.string().optional(),
+  smtpFromEmail: z.string().trim().email('Invalid from email'),
+});
+
+const updatePropertyBookingPrefixSchema = z.object({
+  propertyId: z.string().min(1, 'Property id is required'),
+  bookingPrefix: bookingPrefixSchema,
+});
+
+export async function updatePropertyBookingPrefix(
+  input: UpdatePropertyBookingPrefixInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const validated = updatePropertyBookingPrefixSchema.parse(input);
+
+    const access = await requirePropertyAccess(validated.propertyId, userId);
+    if (!access.ok) return access.response;
+
+    await prisma.property.update({
+      where: { id: validated.propertyId },
+      data: {
+        bookingPrefix: validated.bookingPrefix,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('updatePropertyBookingPrefix error:', error);
+    return {
+      success: false,
+      error: 'Error updating booking prefix',
+    };
+  }
+}
+
 export async function updatePropertySmtpSettings(
   input: UpdatePropertySmtpInput,
   userId?: string
 ): Promise<PropertyResponse> {
   try {
-    const access = await requirePropertyAccess(input.propertyId, userId);
+    const validated = updatePropertySmtpSchema.parse(input);
+
+    const access = await requirePropertyAccess(validated.propertyId, userId);
     if (!access.ok) return access.response;
 
     const property = await prisma.property.findUnique({
-      where: { id: input.propertyId },
+      where: { id: validated.propertyId },
       select: {
         id: true,
         smtpPassword: true,
@@ -139,7 +204,7 @@ export async function updatePropertySmtpSettings(
       };
     }
 
-    const nextPassword = input.smtpPassword?.trim() ? input.smtpPassword.trim() : property.smtpPassword;
+    const nextPassword = validated.smtpPassword?.trim() ? validated.smtpPassword.trim() : property.smtpPassword;
 
     if (!nextPassword) {
       return {
@@ -149,18 +214,26 @@ export async function updatePropertySmtpSettings(
     }
 
     await prisma.property.update({
-      where: { id: input.propertyId },
+      where: { id: validated.propertyId },
       data: {
-        smtpHost: input.smtpHost.trim(),
-        smtpPort: input.smtpPort,
-        smtpUser: input.smtpUser.trim(),
+        bookingPrefix: validated.bookingPrefix,
+        smtpHost: validated.smtpHost.trim(),
+        smtpPort: validated.smtpPort,
+        smtpUser: validated.smtpUser.trim(),
         smtpPassword: nextPassword,
-        smtpFromEmail: input.smtpFromEmail.trim(),
+        smtpFromEmail: validated.smtpFromEmail.trim(),
       },
     });
 
     return { success: true };
   } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
     console.error('updatePropertySmtpSettings error:', error);
     return {
       success: false,

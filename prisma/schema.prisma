@@ -58,6 +58,7 @@ model Property {
   cleaningFee       Decimal       @db.Decimal(12,2)    // nueva prima
   minimumStay       Int           @default(1)
   depositPercentage Int
+  bookingPrefix     String        @default("EF") // @zod.max(3)
   icalUrlIn         String?       // URL iCal externa
   autoSyncEnabled   Boolean       @default(false)
   autoSyncIntervalMinutes Int     @default(30)
@@ -111,6 +112,7 @@ model SeasonRate {
 
 model Booking {
   id              String        @id @default(uuid()) @db.Uuid
+  bookingCode     String        @unique
   property        Property      @relation(fields: [propertyId], references: [id])
   propertyId      String        @db.Uuid
   status          BookingStatus

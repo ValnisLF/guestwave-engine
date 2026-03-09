@@ -14,6 +14,7 @@ import {
   syncPropertyCalendar,
   syncPropertyIcalCalendarAction,
   testPropertySmtpConnection,
+  updatePropertyBookingPrefix,
   updateProperty,
   updatePropertyAutoSyncSettings,
   updatePropertyIcalCalendar,
@@ -61,6 +62,7 @@ type PropertyView = {
   cleaningFee: number;
   minimumStay: number;
   depositPercentage: number;
+  bookingPrefix: string;
   autoSyncEnabled: boolean;
   autoSyncIntervalMinutes: number;
   autoSyncLastRunAt: string | null;
@@ -175,6 +177,7 @@ export function OwnerPropertyWorkspace({
   const [bookingPendingRefund, setBookingPendingRefund] = useState<BookingView | null>(null);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [savingSmtp, setSavingSmtp] = useState(false);
+  const [savingBookingPrefix, setSavingBookingPrefix] = useState(false);
   const [smtpConnectionTested, setSmtpConnectionTested] = useState(false);
 
   const [manualBlockStartDate, setManualBlockStartDate] = useState('');
@@ -182,6 +185,7 @@ export function OwnerPropertyWorkspace({
   const [savingManualBlock, setSavingManualBlock] = useState(false);
 
   type SmtpFormValues = {
+    bookingPrefix: string;
     smtpHost: string;
     smtpPort: number;
     smtpUser: string;
@@ -192,6 +196,7 @@ export function OwnerPropertyWorkspace({
 
   const smtpForm = useForm<SmtpFormValues>({
     defaultValues: {
+      bookingPrefix: property.bookingPrefix ?? 'EF',
       smtpHost: property.smtpHost ?? '',
       smtpPort: property.smtpPort ?? 587,
       smtpUser: property.smtpUser ?? '',
@@ -202,6 +207,10 @@ export function OwnerPropertyWorkspace({
   });
 
   const smtpDirty = smtpForm.formState.isDirty;
+  const bookingPrefixValue = smtpForm.watch('bookingPrefix');
+  const initialBookingPrefix = (property.bookingPrefix ?? 'EF').trim().toUpperCase();
+  const normalizedBookingPrefix = (bookingPrefixValue ?? '').trim().toUpperCase();
+  const bookingPrefixChanged = normalizedBookingPrefix !== initialBookingPrefix;
 
   const toDisplayName = (email: string | null | undefined): string => {
     if (!email) return 'Propietario';
@@ -540,6 +549,7 @@ export function OwnerPropertyWorkspace({
 
   const onTestSmtp = async () => {
     const isValid = await smtpForm.trigger([
+      'bookingPrefix',
       'smtpHost',
       'smtpPort',
       'smtpUser',
@@ -559,6 +569,7 @@ export function OwnerPropertyWorkspace({
 
     const result = await testPropertySmtpConnection({
       propertyId: property.id,
+      bookingPrefix: values.bookingPrefix,
       smtpHost: values.smtpHost,
       smtpPort: Number(values.smtpPort),
       smtpUser: values.smtpUser,
@@ -577,6 +588,34 @@ export function OwnerPropertyWorkspace({
 
     setSmtpConnectionTested(true);
     setSuccess(`Email de prueba enviado a ${result.data?.recipient ?? 'destino configurado'}`);
+  };
+
+  const onSaveBookingPrefix = async () => {
+    const isValid = await smtpForm.trigger(['bookingPrefix']);
+    if (!isValid) {
+      setError('Revisa el prefijo de reservas antes de guardar');
+      return;
+    }
+
+    setSavingBookingPrefix(true);
+    setError(null);
+    setSuccess(null);
+
+    const values = smtpForm.getValues();
+    const result = await updatePropertyBookingPrefix({
+      propertyId: property.id,
+      bookingPrefix: values.bookingPrefix,
+    });
+
+    setSavingBookingPrefix(false);
+
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo guardar el prefijo de reservas');
+      return;
+    }
+
+    setSuccess('Prefijo de reservas guardado');
+    router.refresh();
   };
 
   const onSaveSmtp = async () => {
@@ -604,6 +643,7 @@ export function OwnerPropertyWorkspace({
     const values = smtpForm.getValues();
     const result = await updatePropertySmtpSettings({
       propertyId: property.id,
+      bookingPrefix: values.bookingPrefix,
       smtpHost: values.smtpHost,
       smtpPort: Number(values.smtpPort),
       smtpUser: values.smtpUser,
@@ -1094,6 +1134,40 @@ export function OwnerPropertyWorkspace({
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
+              <div className="rounded border border-slate-200 p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Prefijo de Reservas</h3>
+                <div className="mt-3 max-w-sm space-y-1">
+                  <Input
+                    placeholder="EF"
+                    maxLength={3}
+                    {...smtpForm.register('bookingPrefix', {
+                      required: 'Prefijo obligatorio',
+                      minLength: { value: 2, message: 'Minimo 2 caracteres' },
+                      maxLength: { value: 3, message: 'Maximo 3 caracteres' },
+                      pattern: {
+                        value: /^[A-Za-z]+$/,
+                        message: 'Solo letras',
+                      },
+                    })}
+                  />
+                  {smtpForm.formState.errors.bookingPrefix ? (
+                    <span className="text-xs text-red-600">{smtpForm.formState.errors.bookingPrefix.message}</span>
+                  ) : null}
+                  <span className="text-xs text-slate-500">
+                    Este prefijo aparecera al inicio de todos tus codigos de reserva (ej: EF-2403-X8J2)
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    onClick={onSaveBookingPrefix}
+                    disabled={savingBookingPrefix || !bookingPrefixChanged}
+                  >
+                    {savingBookingPrefix ? 'Guardando...' : 'Guardar prefijo'}
+                  </Button>
+                </div>
+              </div>
+
               <div className="rounded border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Configuracion SMTP de la propiedad</h3>
                 <p className="mt-1 text-xs text-slate-600">

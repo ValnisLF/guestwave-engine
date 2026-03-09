@@ -101,6 +101,7 @@ describe('booking actions checkout flow', () => {
       .mockResolvedValueOnce({
         name: 'Villa Sol',
         slug: 'villa-sol',
+        bookingPrefix: 'EF',
       });
 
     bookingCreateMock.mockResolvedValue({
@@ -115,6 +116,7 @@ describe('booking actions checkout flow', () => {
 
     bookingFindUniqueMock.mockResolvedValue({
       id: 'booking_1',
+      bookingCode: 'EF-2603-X8J2',
       propertyId: 'prop_1',
       checkIn,
       checkOut,
@@ -162,9 +164,7 @@ describe('booking actions checkout flow', () => {
     expect(sendBookingEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: 'guest@example.com',
-        subject: 'Reserva confirmada · Villa Sol',
-        html: expect.stringContaining('Importe total de la reserva:</strong> 500.00 EUR'),
-        text: expect.stringContaining('Importe pendiente por pagar: 350.00 EUR'),
+        subject: 'Reserva confirmada · Villa Sol · EF-2603-X8J2',
         property: {
           smtpHost: 'smtp.owner.local',
           smtpPort: 587,
@@ -174,6 +174,11 @@ describe('booking actions checkout flow', () => {
         },
       })
     );
+    const sentPayload = sendBookingEmailMock.mock.calls[0]?.[0];
+    expect(sentPayload?.html).toContain('Codigo de reserva:</strong> EF-2603-X8J2');
+    expect(sentPayload?.html).toContain('Importe total de la reserva:</strong> 500.00 EUR');
+    expect(sentPayload?.text).toContain('Codigo de reserva: EF-2603-X8J2');
+    expect(sentPayload?.text).toContain('Importe pendiente por pagar: 350.00 EUR');
   });
 
   it('does not create duplicate blocked dates on mock checkout confirmation', async () => {
@@ -193,6 +198,7 @@ describe('booking actions checkout flow', () => {
       .mockResolvedValueOnce({
         name: 'Villa Luna',
         slug: 'villa-luna',
+        bookingPrefix: 'VL',
       });
 
     bookingCreateMock.mockResolvedValue({
@@ -208,6 +214,7 @@ describe('booking actions checkout flow', () => {
 
     bookingFindUniqueMock.mockResolvedValue({
       id: 'booking_2',
+      bookingCode: 'VL-2603-Z9K4',
       propertyId: 'prop_2',
       checkIn,
       checkOut,

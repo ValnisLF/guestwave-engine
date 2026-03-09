@@ -6,6 +6,7 @@ import { prisma } from '@infra/prisma';
 import { type SeasonRate } from '@features/pricing/types';
 import { createStripeCheckoutSession } from '@infra/stripe';
 import { sendBookingEmail } from '@/lib/mail';
+import { generateBookingCode } from '@/lib/ids';
 
 function toUtcDayTimestamp(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -97,11 +98,11 @@ async function confirmBookingAndBlockDates(payload: {
 
       await sendBookingEmail({
         to: confirmedBooking.guestEmail,
-        subject: `Reserva confirmada · ${confirmedBooking.property.name}`,
+        subject: `Reserva confirmada · ${confirmedBooking.property.name} · ${confirmedBooking.bookingCode}`,
         html: `
           <h2>Tu reserva esta confirmada</h2>
           <p><strong>Propiedad:</strong> ${confirmedBooking.property.name}</p>
-          <p><strong>Reserva:</strong> ${confirmedBooking.id}</p>
+          <p><strong>Codigo de reserva:</strong> ${confirmedBooking.bookingCode}</p>
           <p><strong>Check-in:</strong> ${confirmedBooking.checkIn.toLocaleDateString('es-ES')}</p>
           <p><strong>Check-out:</strong> ${confirmedBooking.checkOut.toLocaleDateString('es-ES')}</p>
           <p><strong>Importe total de la reserva:</strong> ${totalAmount.toFixed(2)} EUR</p>
@@ -111,7 +112,7 @@ async function confirmBookingAndBlockDates(payload: {
         text: [
           'Tu reserva esta confirmada',
           `Propiedad: ${confirmedBooking.property.name}`,
-          `Reserva: ${confirmedBooking.id}`,
+          `Codigo de reserva: ${confirmedBooking.bookingCode}`,
           `Check-in: ${confirmedBooking.checkIn.toISOString().slice(0, 10)}`,
           `Check-out: ${confirmedBooking.checkOut.toISOString().slice(0, 10)}`,
           `Importe total de la reserva: ${totalAmount.toFixed(2)} EUR`,
@@ -422,7 +423,7 @@ export async function createCheckoutSession(
 
     const property = await prisma.property.findUnique({
       where: { id: propertyId },
-      select: { name: true, slug: true },
+      select: { name: true, slug: true, bookingPrefix: true },
     });
 
     if (!property) {
@@ -446,6 +447,7 @@ export async function createCheckoutSession(
         checkIn: startDate,
         checkOut: endDate,
         status: 'PENDING',
+        bookingCode: generateBookingCode(property.bookingPrefix),
         totalPrice: priceEst.total || 0,
         depositAmount: priceEst.deposit || 0,
         guestEmail,
@@ -468,7 +470,7 @@ export async function createCheckoutSession(
         success: true,
         bookingId: booking.id,
         stripeSessionId: mockSessionId,
-        checkoutUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingId=${booking.id}`,
+        checkoutUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingCode=${booking.bookingCode}`,
       };
     }
 
@@ -477,7 +479,7 @@ export async function createCheckoutSession(
       propertyName: property.name,
       guestEmail,
       amountDueNow: priceEst.amountDueNow ?? priceEst.total,
-      successUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingId=${booking.id}`,
+      successUrl: `${appUrl}/properties/${property.slug}?checkout=success&bookingCode=${booking.bookingCode}`,
       cancelUrl: `${appUrl}/properties/${property.slug}?checkout=cancelled`,
     });
 

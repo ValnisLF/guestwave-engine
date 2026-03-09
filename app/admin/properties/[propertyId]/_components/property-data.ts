@@ -64,6 +64,7 @@ export async function getOwnerWorkspaceProperty(propertyId: string) {
     cleaningFee: Number(property.cleaningFee),
     minimumStay: property.minimumStay,
     depositPercentage: property.depositPercentage,
+    bookingPrefix: property.bookingPrefix,
     autoSyncEnabled: property.autoSyncEnabled,
     autoSyncIntervalMinutes: property.autoSyncIntervalMinutes,
     autoSyncLastRunAt: property.autoSyncLastRunAt ? property.autoSyncLastRunAt.toISOString() : null,

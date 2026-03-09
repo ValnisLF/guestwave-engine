@@ -127,7 +127,7 @@ test.describe('Public properties booking flow', () => {
 
     await page.getByRole('button', { name: 'Book Now' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/properties/${slug}\\?checkout=success&bookingId=`));
+      await expect(page).toHaveURL(new RegExp(`/properties/${slug}\\?checkout=success&bookingCode=`));
     await expect(page.getByText('Booking created and payment completed successfully.')).toBeVisible();
   });
 
@@ -156,7 +156,7 @@ test.describe('Public properties booking flow', () => {
 
     await page.getByRole('button', { name: 'Book Now' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/properties/${slug}\\?checkout=success&bookingId=`));
+      await expect(page).toHaveURL(new RegExp(`/properties/${slug}\\?checkout=success&bookingCode=`));
 
     const checkInButton = await findCalendarDayButton(page, checkIn);
     await expect(checkInButton).toBeDisabled();
