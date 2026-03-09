@@ -122,6 +122,16 @@ export type UpdatePropertyBookingPrefixInput = {
   bookingPrefix: string;
 };
 
+export type UpdatePropertySettingsInput = {
+  propertyId: string;
+  primaryColor: string;
+  accentColor?: string | null;
+  fontFamily?: string | null;
+  homeHeroTitle?: string | null;
+  homeHeroSubtitle?: string | null;
+  homeDescription?: string | null;
+};
+
 const bookingPrefixSchema = z
   .string()
   .trim()
@@ -144,6 +154,80 @@ const updatePropertyBookingPrefixSchema = z.object({
   propertyId: z.string().min(1, 'Property id is required'),
   bookingPrefix: bookingPrefixSchema,
 });
+
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/, 'Primary color must be a valid hex color')
+  .transform((value) => value.toUpperCase());
+
+const optionalHexColorSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  },
+  hexColorSchema.nullable().optional()
+);
+
+const optionalTextSchema = (max: number) =>
+  z.preprocess(
+  (value) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  },
+  z.string().max(max).nullable().optional()
+);
+
+const updatePropertySettingsSchema = z.object({
+  propertyId: z.string().min(1, 'Property id is required'),
+  primaryColor: hexColorSchema,
+  accentColor: optionalHexColorSchema,
+  fontFamily: optionalTextSchema(120),
+  homeHeroTitle: optionalTextSchema(200),
+  homeHeroSubtitle: optionalTextSchema(300),
+  homeDescription: optionalTextSchema(5000),
+});
+
+export async function updatePropertySettings(
+  input: UpdatePropertySettingsInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const validated = updatePropertySettingsSchema.parse(input);
+
+    const access = await requirePropertyAccess(validated.propertyId, userId);
+    if (!access.ok) return access.response;
+
+    await prisma.property.update({
+      where: { id: validated.propertyId },
+      data: {
+        primaryColor: validated.primaryColor,
+        accentColor: validated.accentColor ?? null,
+        fontFamily: validated.fontFamily ?? null,
+        homeHeroTitle: validated.homeHeroTitle ?? null,
+        homeHeroSubtitle: validated.homeHeroSubtitle ?? null,
+        homeDescription: validated.homeDescription ?? null,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('updatePropertySettings error:', error);
+    return {
+      success: false,
+      error: 'Error updating property settings',
+    };
+  }
+}
 
 export async function updatePropertyBookingPrefix(
   input: UpdatePropertyBookingPrefixInput,

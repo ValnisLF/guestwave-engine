@@ -17,6 +17,7 @@ const menuItems = [
   { key: 'tarifas', label: 'Tarifas' },
   { key: 'reservas', label: 'Reservas' },
   { key: 'finanzas', label: 'Finanzas' },
+  { key: 'apariencia', label: 'Apariencia' },
   { key: 'fotos', label: 'Fotos' },
   { key: 'contenidos', label: 'Contenidos' },
   { key: 'ia', label: 'IA' },

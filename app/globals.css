@@ -1,8 +1,11 @@
+@config "../tailwind.config.ts";
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #2563eb;
+  --accent: #0f766e;
 }
 
 @theme inline {

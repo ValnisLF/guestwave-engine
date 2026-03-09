@@ -58,6 +58,13 @@ model Property {
   name              String
   slug              String        @unique
   description       String?
+  primaryColor      String?
+  accentColor       String?
+  fontFamily        String?
+  homeHeroTitle     String?
+  homeHeroSubtitle  String?
+  homeDescription   String?
+  pageContent       Json?
   imageUrls         String[]      @default([])
   amenities         Json
   basePrice         Decimal       @db.Decimal(12,2)
