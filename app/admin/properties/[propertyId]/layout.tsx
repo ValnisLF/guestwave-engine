@@ -16,6 +16,7 @@ const menuItems = [
   { key: 'calendario', label: 'Calendario' },
   { key: 'tarifas', label: 'Tarifas' },
   { key: 'reservas', label: 'Reservas' },
+  { key: 'finanzas', label: 'Finanzas' },
   { key: 'fotos', label: 'Fotos' },
   { key: 'contenidos', label: 'Contenidos' },
   { key: 'ia', label: 'IA' },
