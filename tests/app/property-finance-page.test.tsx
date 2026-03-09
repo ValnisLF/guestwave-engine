@@ -90,6 +90,9 @@ describe('property finance page integration', () => {
     expect(html).toContain('Reservas y Cobros');
 
     expect(html).toContain('Mostrando: Pendiente de cobro');
+    expect(html).toContain(
+      '/admin/properties/prop_1/finanzas/export?month=2026-03&amp;status=pending'
+    );
 
     expect(html).toContain('EF-2603-A1B2');
     expect(html).not.toContain('EF-2603-C3D4');
@@ -146,5 +149,6 @@ describe('property finance page integration', () => {
     expect(html).not.toContain('EF-2603-A1B2');
     expect(html).toContain('EF-2604-E5F6');
     expect(html).toContain('Mostrando: Todos');
+    expect(html).toContain('/admin/properties/prop_1/finanzas/export?month=2026-04&amp;status=all');
   });
 });

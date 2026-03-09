@@ -308,7 +308,18 @@ export default async function PropertyFinancePage({ params, searchParams }: Fina
 
       <Card>
         <CardHeader className="space-y-3">
-          <CardTitle>Reservas y Cobros</CardTitle>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Reservas y Cobros</CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <a
+                href={`/admin/properties/${propertyId}/finanzas/export?month=${encodeURIComponent(
+                  monthKey
+                )}&status=${encodeURIComponent(statusFilter)}`}
+              >
+                Exportar a CSV
+              </a>
+            </Button>
+          </div>
           <form className="grid gap-3 md:grid-cols-[1fr_220px_160px]" method="get">
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500" htmlFor="month-filter">
