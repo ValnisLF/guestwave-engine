@@ -5,7 +5,7 @@ import { calculatePrice } from '@features/pricing/pricing';
 import { prisma } from '@infra/prisma';
 import { type SeasonRate } from '@features/pricing/types';
 import { createStripeCheckoutSession } from '@infra/stripe';
-import { sendOwnerPaymentNotification } from '@infra/notifications/resend';
+import { sendBookingEmail } from '@/lib/mail';
 
 function toUtcDayTimestamp(date: Date): number {
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -42,14 +42,28 @@ async function confirmBookingAndBlockDates(payload: {
 }) {
   let booking = await prisma.booking.findUnique({
     where: { id: payload.bookingId },
+    include: {
+      property: {
+        select: {
+          name: true,
+          smtpHost: true,
+          smtpPort: true,
+          smtpUser: true,
+          smtpPassword: true,
+          smtpFromEmail: true,
+        },
+      },
+    },
   });
 
   if (!booking) {
     throw new Error(`Booking not found: ${payload.bookingId}`);
   }
 
+  const confirmedBooking = booking;
+
   await prisma.$transaction(async (tx) => {
-    booking = await tx.booking.update({
+    await tx.booking.update({
       where: { id: payload.bookingId },
       data: {
         status: 'CONFIRMED',
@@ -65,31 +79,61 @@ async function confirmBookingAndBlockDates(payload: {
     if (!existingBlocked) {
       await tx.blockedDate.create({
         data: {
-          propertyId: booking!.propertyId,
-          bookingId: booking!.id,
-          startDate: booking!.checkIn,
-          endDate: booking!.checkOut,
+          propertyId: confirmedBooking.propertyId,
+          bookingId: confirmedBooking.id,
+          startDate: confirmedBooking.checkIn,
+          endDate: confirmedBooking.checkOut,
           source: 'BOOKING',
         },
       });
     }
   });
 
-  const ownerEmail = process.env.OWNER_NOTIFICATION_EMAIL;
-  if (ownerEmail) {
+  if (confirmedBooking.guestEmail) {
     try {
-      await sendOwnerPaymentNotification({
-        toEmail: ownerEmail,
-        bookingId: booking.id,
-        propertyId: booking.propertyId,
-        amountPaid: Number(booking.depositAmount),
+      const totalAmount = Number(confirmedBooking.totalPrice);
+      const paidAmount = Number(confirmedBooking.depositAmount);
+      const pendingAmount = Math.max(0, totalAmount - paidAmount);
+
+      await sendBookingEmail({
+        to: confirmedBooking.guestEmail,
+        subject: `Reserva confirmada · ${confirmedBooking.property.name}`,
+        html: `
+          <h2>Tu reserva esta confirmada</h2>
+          <p><strong>Propiedad:</strong> ${confirmedBooking.property.name}</p>
+          <p><strong>Reserva:</strong> ${confirmedBooking.id}</p>
+          <p><strong>Check-in:</strong> ${confirmedBooking.checkIn.toLocaleDateString('es-ES')}</p>
+          <p><strong>Check-out:</strong> ${confirmedBooking.checkOut.toLocaleDateString('es-ES')}</p>
+          <p><strong>Importe total de la reserva:</strong> ${totalAmount.toFixed(2)} EUR</p>
+          <p><strong>Importe pagado:</strong> ${paidAmount.toFixed(2)} EUR</p>
+          ${pendingAmount > 0 ? `<p><strong>Importe pendiente por pagar:</strong> ${pendingAmount.toFixed(2)} EUR</p>` : ''}
+        `,
+        text: [
+          'Tu reserva esta confirmada',
+          `Propiedad: ${confirmedBooking.property.name}`,
+          `Reserva: ${confirmedBooking.id}`,
+          `Check-in: ${confirmedBooking.checkIn.toISOString().slice(0, 10)}`,
+          `Check-out: ${confirmedBooking.checkOut.toISOString().slice(0, 10)}`,
+          `Importe total de la reserva: ${totalAmount.toFixed(2)} EUR`,
+          `Importe pagado: ${paidAmount.toFixed(2)} EUR`,
+          ...(pendingAmount > 0
+            ? [`Importe pendiente por pagar: ${pendingAmount.toFixed(2)} EUR`]
+            : []),
+        ].join('\n'),
+        property: {
+          smtpHost: confirmedBooking.property.smtpHost,
+          smtpPort: confirmedBooking.property.smtpPort,
+          smtpUser: confirmedBooking.property.smtpUser,
+          smtpPassword: confirmedBooking.property.smtpPassword,
+          smtpFromEmail: confirmedBooking.property.smtpFromEmail,
+        },
       });
     } catch (notificationError) {
-      console.error('Owner notification error:', notificationError);
+      console.error('Booking confirmation email error:', notificationError);
     }
   }
 
-  return booking;
+  return confirmedBooking;
 }
 
 export type CheckAvailabilityInput = {

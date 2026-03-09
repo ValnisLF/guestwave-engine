@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const verifyStripeWebhookMock = vi.fn();
-const sendOwnerPaymentNotificationMock = vi.fn();
+const sendBookingEmailMock = vi.fn();
 
 const bookingFindUniqueMock = vi.fn();
 const bookingUpdateMock = vi.fn();
@@ -37,14 +37,13 @@ vi.mock('@infra/prisma', () => ({
   prisma: prismaMock,
 }));
 
-vi.mock('@infra/notifications/resend', () => ({
-  sendOwnerPaymentNotification: sendOwnerPaymentNotificationMock,
+vi.mock('@/lib/mail', () => ({
+  sendBookingEmail: sendBookingEmailMock,
 }));
 
 describe('POST /api/webhooks/stripe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.OWNER_NOTIFICATION_EMAIL = 'owner@example.com';
   });
 
   it('returns 400 when signature header is missing', async () => {
@@ -81,9 +80,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_1',
       checkIn,
       checkOut,
+      guestEmail: 'guest@example.com',
+      totalPrice: 480,
       depositAmount: 120,
       stripeSessionId: 'pending_abc',
       status: 'PENDING',
+      property: {
+        name: 'Villa Sol',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-sol.com',
+      },
     });
 
     bookingUpdateMock.mockResolvedValue({
@@ -91,9 +100,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_1',
       checkIn,
       checkOut,
+      guestEmail: 'guest@example.com',
+      totalPrice: 480,
       depositAmount: 120,
       stripeSessionId: 'cs_live_123',
       status: 'CONFIRMED',
+      property: {
+        name: 'Villa Sol',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-sol.com',
+      },
     });
 
     blockedDateFindFirstMock.mockResolvedValue(null);
@@ -129,10 +148,19 @@ describe('POST /api/webhooks/stripe', () => {
       },
     });
 
-    expect(sendOwnerPaymentNotificationMock).toHaveBeenCalledWith(
+    expect(sendBookingEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        toEmail: 'owner@example.com',
-        bookingId: 'booking_1',
+        to: 'guest@example.com',
+        subject: 'Reserva confirmada · Villa Sol',
+        html: expect.stringContaining('Importe total de la reserva:</strong> 480.00 EUR'),
+        text: expect.stringContaining('Importe pendiente por pagar: 360.00 EUR'),
+        property: {
+          smtpHost: 'smtp.owner.local',
+          smtpPort: 587,
+          smtpUser: 'owner-user',
+          smtpPassword: 'owner-pass',
+          smtpFromEmail: 'reservas@villa-sol.com',
+        },
       })
     );
   });
@@ -180,9 +208,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_dup',
       checkIn,
       checkOut,
+      guestEmail: 'guest2@example.com',
+      totalPrice: 600,
       depositAmount: 200,
       stripeSessionId: 'cs_live_dup',
       status: 'CONFIRMED',
+      property: {
+        name: 'Villa Luna',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-luna.com',
+      },
     });
 
     bookingUpdateMock.mockResolvedValue({
@@ -190,9 +228,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_dup',
       checkIn,
       checkOut,
+      guestEmail: 'guest2@example.com',
+      totalPrice: 600,
       depositAmount: 200,
       stripeSessionId: 'cs_live_dup',
       status: 'CONFIRMED',
+      property: {
+        name: 'Villa Luna',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-luna.com',
+      },
     });
 
     blockedDateFindFirstMock.mockResolvedValue({ id: 'blocked_existing' });
@@ -233,9 +281,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_nometa',
       checkIn,
       checkOut,
+      guestEmail: 'guest3@example.com',
+      totalPrice: 300,
       depositAmount: 95,
       stripeSessionId: 'cs_live_nometa',
       status: 'PENDING',
+      property: {
+        name: 'Villa Norte',
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPassword: null,
+        smtpFromEmail: null,
+      },
     });
 
     bookingUpdateMock.mockResolvedValue({
@@ -243,9 +301,19 @@ describe('POST /api/webhooks/stripe', () => {
       propertyId: 'property_nometa',
       checkIn,
       checkOut,
+      guestEmail: 'guest3@example.com',
+      totalPrice: 300,
       depositAmount: 95,
       stripeSessionId: 'cs_live_nometa',
       status: 'CONFIRMED',
+      property: {
+        name: 'Villa Norte',
+        smtpHost: null,
+        smtpPort: null,
+        smtpUser: null,
+        smtpPassword: null,
+        smtpFromEmail: null,
+      },
     });
 
     blockedDateFindFirstMock.mockResolvedValue(null);
@@ -266,8 +334,89 @@ describe('POST /api/webhooks/stripe', () => {
     expect(bookingFindUniqueMock).toHaveBeenCalledTimes(1);
     expect(bookingFindUniqueMock).toHaveBeenNthCalledWith(1, {
       where: { stripeSessionId: 'cs_live_nometa' },
+      include: {
+        property: {
+          select: {
+            name: true,
+            smtpHost: true,
+            smtpPort: true,
+            smtpUser: true,
+            smtpPassword: true,
+            smtpFromEmail: true,
+          },
+        },
+      },
     });
     expect(bookingUpdateMock).toHaveBeenCalledOnce();
     expect(blockedDateCreateMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not try to send confirmation email when guest email is missing', async () => {
+    const checkIn = new Date('2026-08-10');
+    const checkOut = new Date('2026-08-12');
+
+    verifyStripeWebhookMock.mockReturnValue({
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_live_no_email',
+          metadata: { bookingId: 'booking_no_email' },
+        },
+      },
+    });
+
+    bookingFindUniqueMock.mockResolvedValue({
+      id: 'booking_no_email',
+      propertyId: 'property_2',
+      checkIn,
+      checkOut,
+      guestEmail: null,
+      totalPrice: 250,
+      depositAmount: 100,
+      stripeSessionId: 'pending_no_email',
+      status: 'PENDING',
+      property: {
+        name: 'Villa Sur',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-sur.com',
+      },
+    });
+
+    bookingUpdateMock.mockResolvedValue({
+      id: 'booking_no_email',
+      propertyId: 'property_2',
+      checkIn,
+      checkOut,
+      guestEmail: null,
+      totalPrice: 250,
+      depositAmount: 100,
+      stripeSessionId: 'cs_live_no_email',
+      status: 'CONFIRMED',
+      property: {
+        name: 'Villa Sur',
+        smtpHost: 'smtp.owner.local',
+        smtpPort: 587,
+        smtpUser: 'owner-user',
+        smtpPassword: 'owner-pass',
+        smtpFromEmail: 'reservas@villa-sur.com',
+      },
+    });
+
+    blockedDateFindFirstMock.mockResolvedValue(null);
+    blockedDateCreateMock.mockResolvedValue({ id: 'blocked_no_email' });
+
+    const { POST } = await import('@/app/api/webhooks/stripe/route');
+
+    const req = {
+      headers: { get: () => 'sig_no_email' },
+      text: async () => '{"id":"evt_no_email"}',
+    } as any;
+
+    const response = await POST(req);
+    expect(response.status).toBe(200);
+    expect(sendBookingEmailMock).not.toHaveBeenCalled();
   });
 });
