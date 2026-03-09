@@ -1,6 +1,29 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@infra/prisma';
+import { PreviewThemeOverrides } from './_components/PreviewThemeOverrides';
+
+const DEFAULT_PRIMARY = '#2563EB';
+const DEFAULT_ACCENT = '#0F766E';
+
+const fontFamilyMap: Record<string, string> = {
+  Inter: "'Inter', Arial, Helvetica, sans-serif",
+  Lora: "'Lora', Georgia, serif",
+  Montserrat: "'Montserrat', Arial, Helvetica, sans-serif",
+  Poppins: "'Poppins', Arial, Helvetica, sans-serif",
+  'Playfair Display': "'Playfair Display', Georgia, serif",
+};
+
+function sanitizeHexColor(color: string | null | undefined, fallback: string) {
+  if (!color) return fallback;
+  const trimmed = color.trim();
+  return /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(trimmed) ? trimmed : fallback;
+}
+
+function resolvePropertyFont(fontFamily: string | null | undefined) {
+  if (!fontFamily) return null;
+  return fontFamilyMap[fontFamily.trim()] ?? null;
+}
 
 type PropertyLayoutProps = {
   children: React.ReactNode;
@@ -22,15 +45,28 @@ export default async function PropertyPublicLayout({ children, params }: Propert
 
   const property = await prisma.property.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      primaryColor: true,
+      accentColor: true,
+      fontFamily: true,
+    },
   });
 
   if (!property) {
     notFound();
   }
 
+  const primary = sanitizeHexColor(property.primaryColor, DEFAULT_PRIMARY);
+  const accent = sanitizeHexColor(property.accentColor, DEFAULT_ACCENT);
+  const font = resolvePropertyFont(property.fontFamily);
+
   return (
     <div className="space-y-4 py-6">
+      <style>{`:root{--primary:${primary};--accent:${accent};--primary-color:${primary};--accent-color:${accent};${font ? `--property-font:${font};` : ''}}body{--primary:${primary};--accent:${accent};--primary-color:${primary};--accent-color:${accent};${font ? `--property-font:${font};` : ''}}`}</style>
+      <PreviewThemeOverrides />
       <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3">
           <h1 className="text-xl font-semibold text-slate-900">{property.name}</h1>

@@ -21,9 +21,6 @@ export default async function PropertyAparienciaPage({ params }: AppearancePageP
       primaryColor: true,
       accentColor: true,
       fontFamily: true,
-      homeHeroTitle: true,
-      homeHeroSubtitle: true,
-      homeDescription: true,
     },
   });
 
@@ -44,9 +41,6 @@ export default async function PropertyAparienciaPage({ params }: AppearancePageP
       primaryColor: String(formData.get('primaryColor') ?? ''),
       accentColor: String(formData.get('accentColor') ?? ''),
       fontFamily: String(formData.get('fontFamily') ?? ''),
-      homeHeroTitle: String(formData.get('homeHeroTitle') ?? ''),
-      homeHeroSubtitle: String(formData.get('homeHeroSubtitle') ?? ''),
-      homeDescription: String(formData.get('homeDescription') ?? ''),
     });
 
     if (result.success) {
@@ -70,7 +64,7 @@ export default async function PropertyAparienciaPage({ params }: AppearancePageP
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">Apariencia</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Personaliza diseño y contenidos principales de la Home para {property.name}.
+          Personaliza diseño y estilo visual de la web publica para {property.name}.
         </p>
       </div>
 
@@ -78,12 +72,10 @@ export default async function PropertyAparienciaPage({ params }: AppearancePageP
         action={saveAppearanceSettings}
         initialValues={{
           propertyId: property.id,
+          propertySlug: property.slug,
           primaryColor: property.primaryColor ?? '#1E40AF',
           accentColor: property.accentColor ?? '#0F766E',
           fontFamily: property.fontFamily ?? 'Inter',
-          homeHeroTitle: property.homeHeroTitle ?? '',
-          homeHeroSubtitle: property.homeHeroSubtitle ?? '',
-          homeDescription: property.homeDescription ?? '',
         }}
       />
     </section>

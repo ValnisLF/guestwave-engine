@@ -37,6 +37,15 @@ UI convention:
 - The project UI component library standard is `shadcn/ui` (with Tailwind CSS).
 - For new UI features, prefer `shadcn/ui` components over custom primitives when possible.
 
+## Content And Theme Source Of Truth
+
+- Official content editing flow: `Backoffice -> /admin/properties/[propertyId]/contenidos`.
+- Public pages consume section-based content from `Property.pageContent`:
+	- `homePage`, `laPropiedad`, `turismo`, `reservas`, `tarifas`, `contacto`.
+- Design settings live in `Backoffice -> /admin/properties/[propertyId]/apariencia` and affect `/properties/[slug]/*` using:
+	- `primaryColor`, `accentColor`, `fontFamily`.
+- Legacy Home fields (`homeHeroTitle`, `homeHeroSubtitle`, `homeDescription`) are deprecated and removed from active write paths.
+
 ## Primeros 10 minutos
 
 Checklist rapido para un desarrollador nuevo:

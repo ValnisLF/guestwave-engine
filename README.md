@@ -35,6 +35,16 @@ Notes:
 	- create properties
 	- invite collaborators as `OWNER` or `MANAGER`
 
+## Content Management (pageContent)
+
+- Official content editing flow is now `Backoffice -> /admin/properties/[propertyId]/contenidos`.
+- Public pages read content by section from `Property.pageContent` (`homePage`, `laPropiedad`, `turismo`, `reservas`, `tarifas`, `contacto`).
+- Legacy Home fields (`homeHeroTitle`, `homeHeroSubtitle`, `homeDescription`) were removed from the active backoffice flow and database schema.
+- Design settings in `Backoffice -> /admin/properties/[propertyId]/apariencia` now apply on public property routes (`/properties/[slug]/*`) using `primaryColor`, `accentColor` and `fontFamily`.
+- For new content features, extend `pageContent` schemas in `lib/schemas/property.ts` and keep read/write logic aligned between:
+	- `app/admin/properties/[propertyId]/contenidos/page.tsx`
+	- `app/(public)/properties/[slug]/_lib/page-content.ts`
+
 ## Invite Email Setup (Resend)
 
 To make invitation emails work, configure both:

@@ -1,101 +1,32 @@
 import { prisma } from '@infra/prisma';
+import { pageContentSchema, type PageContentSectionKey } from '@/lib/schemas/property';
 
-export type PropertyDynamicPageKey = 'laPropiedad' | 'turismo' | 'tarifas' | 'contacto';
-
-type DynamicSection = {
-  title?: string;
-  text: string;
-  imageUrl?: string;
+type PropertyPublicContent = {
+  slug: string;
+  name: string;
+  imageUrls: string[];
+  pageContent: Record<string, string> | null;
 };
 
-export type DynamicPageData = {
-  propertyName: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  heroImageUrl?: string;
-  gallery: string[];
-  sections: DynamicSection[];
-};
+function toSectionRecord(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
-}
-
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
-}
-
-function resolvePageNode(content: unknown, key: PropertyDynamicPageKey) {
-  const root = asRecord(content);
-  if (!root) return null;
-
-  const keyVariants: string[] =
-    key === 'laPropiedad'
-      ? ['laPropiedad', 'la-propiedad', 'la_propiedad', 'property']
-      : key === 'turismo'
-        ? ['turismo', 'tourism']
-        : key === 'tarifas'
-          ? ['tarifas', 'pricing', 'rates']
-          : ['contacto', 'contact', 'contactoPage'];
-
-  for (const candidate of keyVariants) {
-    const node = asRecord(root[candidate]);
-    if (node) return node;
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = typeof raw === 'string' ? raw : '';
   }
-
-  return null;
+  return out;
 }
 
-function resolveSections(node: Record<string, unknown> | null): DynamicSection[] {
-  if (!node) return [];
-
-  const rawSections = node.sections;
-  if (!Array.isArray(rawSections)) return [];
-
-  return rawSections.reduce<DynamicSection[]>((acc, item) => {
-      const section = asRecord(item);
-      if (!section) return acc;
-
-      const text =
-        asString(section.text) ??
-        asString(section.description) ??
-        asString(section.body) ??
-        asString(section.content);
-
-      if (!text) return acc;
-
-      acc.push({
-        title: asString(section.title) ?? undefined,
-        text,
-        imageUrl: asString(section.imageUrl) ?? asString(section.image) ?? undefined,
-      });
-
-      return acc;
-    }, []);
-}
-
-export async function getPropertyDynamicPageData(
+export async function getPublicPropertySectionBySlug(
   slug: string,
-  key: PropertyDynamicPageKey,
-  defaults: {
-    title: string;
-    subtitle: string;
-    description: string;
-  }
-): Promise<DynamicPageData | null> {
+  section: PageContentSectionKey
+): Promise<PropertyPublicContent | null> {
   const property = await prisma.property.findUnique({
     where: { slug },
     select: {
+      slug: true,
       name: true,
-      description: true,
       imageUrls: true,
       pageContent: true,
     },
@@ -103,22 +34,22 @@ export async function getPropertyDynamicPageData(
 
   if (!property) return null;
 
-  const pageNode = resolvePageNode(property.pageContent, key);
-  const gallery = asStringArray(pageNode?.gallery) || [];
+  const parsed = pageContentSchema.partial().safeParse(property.pageContent);
+  const sectionData = parsed.success ? parsed.data[section] ?? null : null;
 
   return {
-    propertyName: property.name,
-    title: asString(pageNode?.title) ?? defaults.title,
-    subtitle: asString(pageNode?.subtitle) ?? defaults.subtitle,
-    description:
-      asString(pageNode?.description) ?? asString(property.description) ?? defaults.description,
-    heroImageUrl:
-      asString(pageNode?.heroImageUrl) ??
-      asString(pageNode?.imageUrl) ??
-      asString(pageNode?.heroImage) ??
-      property.imageUrls[0] ??
-      undefined,
-    gallery: gallery.length > 0 ? gallery : property.imageUrls.slice(1, 5),
-    sections: resolveSections(pageNode),
+    slug: property.slug,
+    name: property.name,
+    imageUrls: property.imageUrls,
+    pageContent: toSectionRecord(sectionData),
   };
+}
+
+export function hasSectionContent(section: Record<string, string> | null): boolean {
+  if (!section) return false;
+  return Object.values(section).some((value) => value.trim().length > 0);
+}
+
+export function valueOrFallback(value: string | undefined, fallback = 'Contenido en preparación...') {
+  return value && value.trim().length > 0 ? value : fallback;
 }

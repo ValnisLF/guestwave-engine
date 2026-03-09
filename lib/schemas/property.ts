@@ -6,6 +6,54 @@
 
 import { z } from 'zod';
 
+const pageBlockSchema = z.object({
+  overlayHeroTitle: z.string(),
+  overlayHeroSubtitle: z.string(),
+  shortBioTitle: z.string(),
+  shorBioText: z.string(),
+});
+
+export const pageContentSectionSchemas = {
+  homePage: pageBlockSchema.extend({
+    amenitiesTitle: z.string(),
+    amenitiesText: z.string(),
+  }),
+  laPropiedad: pageBlockSchema.extend({
+    groundFloorTitle: z.string(),
+    groundFloorText: z.string(),
+    firstFloorTitle: z.string(),
+    firstFloorText: z.string(),
+    exteriorTitle: z.string(),
+    exteriorText: z.string(),
+  }),
+  turismo: pageBlockSchema.extend({
+    queHacerTitle: z.string(),
+    queVisitarTitle: z.string(),
+    queComerTitle: z.string(),
+    queHacerText: z.string(),
+    queVisitarText: z.string(),
+    queComerText: z.string(),
+  }),
+  reservas: pageBlockSchema.extend({
+    instructions: z.string(),
+  }),
+  tarifas: pageBlockSchema.extend({
+    temporadaAlta: z.string(),
+    temporadaMedia: z.string(),
+    temporadaBaja: z.string(),
+    politicas: z.string(),
+  }),
+  contacto: pageBlockSchema.extend({
+    telefono: z.string(),
+    email: z.string(),
+    direccion: z.string(),
+  }),
+} as const;
+
+export const pageContentSchema = z.object(pageContentSectionSchemas);
+export type PageContent = z.infer<typeof pageContentSchema>;
+export type PageContentSectionKey = keyof typeof pageContentSectionSchemas;
+
 /**
  * Schema para crear una nueva propiedad
  * Todos los campos son obligatorios excepto description, amenities e icalUrlIn
@@ -60,6 +108,8 @@ export const createPropertySchema = z.object({
     .url('URL del iCal debe ser válida')
     .optional()
     .nullable(),
+
+  pageContent: pageContentSchema.optional(),
 });
 
 export type CreatePropertyInput = z.infer<typeof createPropertySchema>;

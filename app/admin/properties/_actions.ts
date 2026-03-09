@@ -4,7 +4,13 @@ import { prisma } from '@infra/prisma';
 import { syncPropertyIcal, syncPropertyIcalCalendar } from '@infra/ical/sync';
 import { refundStripePayment } from '@infra/stripe';
 import { PropertyService } from '@features/properties/property.service';
-import { createPropertySchema, updatePropertySchema } from '@/lib/schemas/property';
+import {
+  createPropertySchema,
+  pageContentSchema,
+  pageContentSectionSchemas,
+  type PageContentSectionKey,
+  updatePropertySchema,
+} from '@/lib/schemas/property';
 import {
   canManagePropertyByEmail,
   ensureAppUserByEmail,
@@ -127,9 +133,13 @@ export type UpdatePropertySettingsInput = {
   primaryColor: string;
   accentColor?: string | null;
   fontFamily?: string | null;
-  homeHeroTitle?: string | null;
-  homeHeroSubtitle?: string | null;
-  homeDescription?: string | null;
+  pageContent?: unknown;
+};
+
+export type UpdatePropertyPageContentSectionInput = {
+  propertyId: string;
+  section: PageContentSectionKey;
+  sectionData: unknown;
 };
 
 const bookingPrefixSchema = z
@@ -185,9 +195,7 @@ const updatePropertySettingsSchema = z.object({
   primaryColor: hexColorSchema,
   accentColor: optionalHexColorSchema,
   fontFamily: optionalTextSchema(120),
-  homeHeroTitle: optionalTextSchema(200),
-  homeHeroSubtitle: optionalTextSchema(300),
-  homeDescription: optionalTextSchema(5000),
+  pageContent: pageContentSchema.optional(),
 });
 
 export async function updatePropertySettings(
@@ -206,9 +214,7 @@ export async function updatePropertySettings(
         primaryColor: validated.primaryColor,
         accentColor: validated.accentColor ?? null,
         fontFamily: validated.fontFamily ?? null,
-        homeHeroTitle: validated.homeHeroTitle ?? null,
-        homeHeroSubtitle: validated.homeHeroSubtitle ?? null,
-        homeDescription: validated.homeDescription ?? null,
+        ...(validated.pageContent !== undefined ? { pageContent: validated.pageContent } : {}),
       },
     });
 
@@ -225,6 +231,71 @@ export async function updatePropertySettings(
     return {
       success: false,
       error: 'Error updating property settings',
+    };
+  }
+}
+
+export async function updatePropertyPageContentSection(
+  input: UpdatePropertyPageContentSectionInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const propertyId = z.string().min(1, 'Property id is required').parse(input.propertyId);
+    const section = z
+      .enum(['homePage', 'laPropiedad', 'turismo', 'reservas', 'tarifas', 'contacto'])
+      .parse(input.section) as PageContentSectionKey;
+
+    const sectionSchema = pageContentSectionSchemas[section];
+    const validatedSectionData = sectionSchema.parse(input.sectionData);
+
+    const access = await requirePropertyAccess(propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { pageContent: true },
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
+    const currentPageContent =
+      property.pageContent && typeof property.pageContent === 'object' && !Array.isArray(property.pageContent)
+        ? (property.pageContent as Record<string, unknown>)
+        : {};
+
+    const mergedPageContent = {
+      ...currentPageContent,
+      [section]: validatedSectionData,
+    };
+
+    // Validate as partial so owners can save one section at a time.
+    const validatedPageContent = pageContentSchema.partial().parse(mergedPageContent);
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        pageContent: validatedPageContent,
+      },
+    });
+
+    return { success: true, data: { section } };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('updatePropertyPageContentSection error:', error);
+    return {
+      success: false,
+      error: 'Error updating page content section',
     };
   }
 }

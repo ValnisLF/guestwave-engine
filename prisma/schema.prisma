@@ -61,9 +61,6 @@ model Property {
   primaryColor      String?
   accentColor       String?
   fontFamily        String?
-  homeHeroTitle     String?
-  homeHeroSubtitle  String?
-  homeDescription   String?
   pageContent       Json?
   imageUrls         String[]      @default([])
   amenities         Json

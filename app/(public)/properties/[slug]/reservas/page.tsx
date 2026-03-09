@@ -3,6 +3,12 @@ import { notFound } from 'next/navigation';
 import { PricingCalculator } from '../_components/PricingCalculator';
 import { PropertyCalendar } from '../_components/PropertyCalendar';
 import { Metadata } from 'next';
+import { Heading, Text } from '@/components/ui/typography';
+import {
+  getPublicPropertySectionBySlug,
+  hasSectionContent,
+  valueOrFallback,
+} from '../_lib/page-content';
 
 export async function generateMetadata({
   params,
@@ -61,6 +67,10 @@ export default async function PropertyReservationsPage({
     notFound();
   }
 
+  const contentProperty = await getPublicPropertySectionBySlug(slug, 'reservas');
+  const section = contentProperty?.pageContent ?? null;
+  const hasContent = hasSectionContent(section);
+
   const unavailableDates = property.blockedDates.map((bd) => ({
     startDate: new Date(bd.startDate),
     endDate: new Date(bd.endDate),
@@ -82,8 +92,19 @@ export default async function PropertyReservationsPage({
       )}
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900">Reservas</h2>
-        <p className="mt-2 text-slate-600">Selecciona fechas y confirma tu estancia.</p>
+        {hasContent ? (
+          <>
+            <Heading level={2} tone="primary">{valueOrFallback(section?.overlayHeroTitle)}</Heading>
+            <Text className="mt-2 text-lg" tone="muted">
+              {valueOrFallback(section?.overlayHeroSubtitle)}
+            </Text>
+            <Heading level={4} className="mt-4">{valueOrFallback(section?.shortBioTitle)}</Heading>
+            <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
+            <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.instructions)}</Text>
+          </>
+        ) : (
+          <Text>Contenido en preparación...</Text>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

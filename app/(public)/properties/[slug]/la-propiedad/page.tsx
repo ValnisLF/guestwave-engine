@@ -1,4 +1,10 @@
-import { DynamicPropertyPage } from '../_components/DynamicPropertyPage';
+import { notFound } from 'next/navigation';
+import { Heading, Text } from '@/components/ui/typography';
+import {
+  getPublicPropertySectionBySlug,
+  hasSectionContent,
+  valueOrFallback,
+} from '../_lib/page-content';
 
 export default async function PropertyLaPropiedadPage({
   params,
@@ -6,17 +12,40 @@ export default async function PropertyLaPropiedadPage({
   params: Promise<{ slug: string }> | { slug: string };
 }) {
   const resolvedParams = params instanceof Promise ? await params : params;
+  const property = await getPublicPropertySectionBySlug(resolvedParams.slug, 'laPropiedad');
+
+  if (!property) notFound();
+
+  const section = property.pageContent;
+  const isEmpty = !hasSectionContent(section);
 
   return (
-    <DynamicPropertyPage
-      slug={resolvedParams.slug}
-      pageKey="laPropiedad"
-      defaults={{
-        title: 'La Propiedad',
-        subtitle: 'Descubre cada espacio y detalle de tu estancia',
-        description:
-          'Esta propiedad combina comodidad, diseño y ubicación para ofrecer una experiencia excepcional.',
-      }}
-    />
+    <section className="space-y-6 py-6">
+      {isEmpty ? (
+        <Text>Contenido en preparación...</Text>
+      ) : (
+        <>
+          <Heading level={1} tone="primary">{valueOrFallback(section?.overlayHeroTitle)}</Heading>
+          <Text className="text-lg" tone="muted">{valueOrFallback(section?.overlayHeroSubtitle)}</Text>
+          <Heading level={3}>{valueOrFallback(section?.shortBioTitle)}</Heading>
+          <Text className="whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-lg border border-slate-200 bg-white p-4">
+              <Heading level={4}>{valueOrFallback(section?.groundFloorTitle)}</Heading>
+              <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.groundFloorText)}</Text>
+            </article>
+            <article className="rounded-lg border border-slate-200 bg-white p-4">
+              <Heading level={4}>{valueOrFallback(section?.firstFloorTitle)}</Heading>
+              <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.firstFloorText)}</Text>
+            </article>
+            <article className="rounded-lg border border-slate-200 bg-white p-4">
+              <Heading level={4}>{valueOrFallback(section?.exteriorTitle)}</Heading>
+              <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.exteriorText)}</Text>
+            </article>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

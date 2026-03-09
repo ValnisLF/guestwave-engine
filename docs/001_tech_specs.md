@@ -41,14 +41,13 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 5. 
 
 ## 💾 Modelado de Datos (Esquema Principal)
-- `properties`: (id, name, slug, description, amenities (jsonb), base_price, deposit_pct, ical_url_in, primary_color, accent_color, font_family, home_hero_title, home_hero_subtitle, home_description, page_content(jsonb)).
+- `properties`: (id, name, slug, description, amenities (jsonb), base_price, deposit_pct, ical_url_in, primary_color, accent_color, font_family, page_content(jsonb)).
 - `season_rates`: (id, property_id, start_date, end_date, price_multiplier).
 - `bookings`: (id, property_id, status (PENDING, CONFIRMED, CANCELLED), check_in, check_out, total_price, guest_email, guest_token (uuid)).
 - `blocked_dates`: (id, property_id, start_date, end_date, source (ical/manual)).
 
 ### Personalización de Property (Branding + CMS Ligero)
 - **Estilos:** `primaryColor`, `accentColor`, `fontFamily`.
-- **Home:** `homeHeroTitle`, `homeHeroSubtitle`, `homeDescription`.
 - **Contenido dinámico:** `pageContent` (`Json`) para almacenar contenido estructurado editable de páginas públicas (Turismo, La Propiedad y Tarifas).
 
 ## Reglas Críticas de Negocio
