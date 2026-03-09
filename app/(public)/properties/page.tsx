@@ -2,6 +2,7 @@ import { prisma } from '@infra/prisma';
 import Link from 'next/link';
 import { PropertyCard } from './_components/PropertyCard';
 
+export const dynamic = "force-dynamic";
 export const metadata = {
   title: 'Available Properties - GuestWave',
   description: 'Browse our collection of premium rental properties',
