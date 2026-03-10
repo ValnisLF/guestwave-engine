@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { PublicHeaderNav } from './_components/PublicHeaderNav';
 
 export const metadata: Metadata = {
   title: 'GuestWave - Premium Property Rentals',
@@ -7,9 +9,9 @@ export const metadata: Metadata = {
 
 export default async function PublicLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <>
       <style>{`body{--primary:#2563EB;--accent:#0F766E;--primary-color:var(--primary);--accent-color:var(--accent);}`}</style>
@@ -18,20 +20,10 @@ export default async function PublicLayout({
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <a href="/" className="text-2xl font-bold text-primary">
+            <Link href="/" className="text-2xl font-bold text-primary">
               GuestWave
-            </a>
-            <nav className="hidden md:flex space-x-8">
-              <a href="/properties" className="text-slate-600 hover:text-primary transition-colors">
-                Properties
-              </a>
-              <a href="/about" className="text-slate-600 hover:text-primary transition-colors">
-                About
-              </a>
-              <a href="/contact" className="text-slate-600 hover:text-primary transition-colors">
-                Contact
-              </a>
-            </nav>
+            </Link>
+            <PublicHeaderNav />
           </div>
         </div>
       </header>
