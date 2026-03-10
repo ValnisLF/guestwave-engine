@@ -6,6 +6,42 @@
 
 import { z } from 'zod';
 
+export const mediaItemSchema = z.string().url('MediaItem debe ser una URL válida');
+export type MediaItem = z.infer<typeof mediaItemSchema>;
+
+const mediaTextBlockSchema = z.object({
+  type: z.enum(['text', 'text_block']),
+  title: z.string().optional(),
+  content: z.string(),
+});
+
+const mediaImageBlockSchema = z.object({
+  type: z.literal('image'),
+  image: mediaItemSchema,
+  alt: z.string().optional(),
+  caption: z.string().optional(),
+});
+
+const mediaCarouselBlockSchema = z.object({
+  type: z.enum(['carousel', 'gallery']),
+  layout: z.enum(['carousel']).optional(),
+  images: z.array(mediaItemSchema).min(1, 'Carousel requiere al menos una imagen'),
+  title: z.string().optional(),
+});
+
+export const mediaSectionBlockSchema = z.union([
+  mediaTextBlockSchema,
+  mediaImageBlockSchema,
+  mediaCarouselBlockSchema,
+]);
+
+export const mediaReadySectionSchema = z.object({
+  sections: z.array(mediaSectionBlockSchema),
+});
+
+export type MediaSectionBlock = z.infer<typeof mediaSectionBlockSchema>;
+export type MediaReadySection = z.infer<typeof mediaReadySectionSchema>;
+
 const pageBlockSchema = z.object({
   overlayHeroTitle: z.string(),
   overlayHeroSubtitle: z.string(),
@@ -14,40 +50,64 @@ const pageBlockSchema = z.object({
 });
 
 export const pageContentSectionSchemas = {
-  homePage: pageBlockSchema.extend({
-    amenitiesTitle: z.string(),
-    amenitiesText: z.string(),
-  }),
-  laPropiedad: pageBlockSchema.extend({
-    groundFloorTitle: z.string(),
-    groundFloorText: z.string(),
-    firstFloorTitle: z.string(),
-    firstFloorText: z.string(),
-    exteriorTitle: z.string(),
-    exteriorText: z.string(),
-  }),
-  turismo: pageBlockSchema.extend({
-    queHacerTitle: z.string(),
-    queVisitarTitle: z.string(),
-    queComerTitle: z.string(),
-    queHacerText: z.string(),
-    queVisitarText: z.string(),
-    queComerText: z.string(),
-  }),
-  reservas: pageBlockSchema.extend({
-    instructions: z.string(),
-  }),
-  tarifas: pageBlockSchema.extend({
-    temporadaAlta: z.string(),
-    temporadaMedia: z.string(),
-    temporadaBaja: z.string(),
-    politicas: z.string(),
-  }),
-  contacto: pageBlockSchema.extend({
-    telefono: z.string(),
-    email: z.string(),
-    direccion: z.string(),
-  }),
+  homePage: z.union([
+    pageBlockSchema.extend({
+      amenitiesTitle: z.string(),
+      amenitiesText: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
+  laPropiedad: z.union([
+    pageBlockSchema.extend({
+      groundFloorTitle: z.string(),
+      groundFloorText: z.string(),
+      firstFloorTitle: z.string(),
+      firstFloorText: z.string(),
+      exteriorTitle: z.string(),
+      exteriorText: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
+  turismo: z.union([
+    pageBlockSchema.extend({
+      queHacerTitle: z.string(),
+      queVisitarTitle: z.string(),
+      queComerTitle: z.string(),
+      queHacerText: z.string(),
+      queVisitarText: z.string(),
+      queComerText: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
+  reservas: z.union([
+    pageBlockSchema.extend({
+      instructions: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
+  tarifas: z.union([
+    pageBlockSchema.extend({
+      temporadaAlta: z.string(),
+      temporadaMedia: z.string(),
+      temporadaBaja: z.string(),
+      politicas: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
+  contacto: z.union([
+    pageBlockSchema.extend({
+      telefono: z.string(),
+      email: z.string(),
+      direccion: z.string(),
+      sections: z.array(mediaSectionBlockSchema).optional(),
+    }),
+    mediaReadySectionSchema,
+  ]),
 } as const;
 
 export const pageContentSchema = z.object(pageContentSectionSchemas);

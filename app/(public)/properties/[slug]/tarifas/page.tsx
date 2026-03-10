@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import { Heading, Text } from '@/components/ui/typography';
 import {
+  getDynamicSections,
   getPublicPropertySectionBySlug,
   hasSectionContent,
   valueOrFallback,
 } from '../_lib/page-content';
+import { DynamicSection } from '../_components/DynamicSection';
 
 export default async function PropertyTarifasPage({
   params,
@@ -18,6 +20,7 @@ export default async function PropertyTarifasPage({
 
   const section = property.pageContent;
   const isEmpty = !hasSectionContent(section);
+  const dynamicSections = getDynamicSections(section);
 
   return (
     <section className="space-y-6 py-6">
@@ -48,6 +51,14 @@ export default async function PropertyTarifasPage({
               <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.politicas)}</Text>
             </article>
           </div>
+
+          {dynamicSections.length > 0 ? (
+            <div className="space-y-4">
+              {dynamicSections.map((block, index) => (
+                <DynamicSection key={`tarifas-block-${index}`} block={block} />
+              ))}
+            </div>
+          ) : null}
         </>
       )}
     </section>

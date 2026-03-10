@@ -5,10 +5,12 @@ import { PropertyCalendar } from '../_components/PropertyCalendar';
 import { Metadata } from 'next';
 import { Heading, Text } from '@/components/ui/typography';
 import {
+  getDynamicSections,
   getPublicPropertySectionBySlug,
   hasSectionContent,
   valueOrFallback,
 } from '../_lib/page-content';
+import { DynamicSection } from '../_components/DynamicSection';
 
 export async function generateMetadata({
   params,
@@ -70,6 +72,7 @@ export default async function PropertyReservationsPage({
   const contentProperty = await getPublicPropertySectionBySlug(slug, 'reservas');
   const section = contentProperty?.pageContent ?? null;
   const hasContent = hasSectionContent(section);
+  const dynamicSections = getDynamicSections(section);
 
   const unavailableDates = property.blockedDates.map((bd) => ({
     startDate: new Date(bd.startDate),
@@ -101,6 +104,14 @@ export default async function PropertyReservationsPage({
             <Heading level={4} className="mt-4">{valueOrFallback(section?.shortBioTitle)}</Heading>
             <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
             <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.instructions)}</Text>
+
+            {dynamicSections.length > 0 ? (
+              <div className="mt-4 space-y-4">
+                {dynamicSections.map((block, index) => (
+                  <DynamicSection key={`reservas-block-${index}`} block={block} />
+                ))}
+              </div>
+            ) : null}
           </>
         ) : (
           <Text>Contenido en preparación...</Text>

@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Heading, Text } from '@/components/ui/typography';
 import {
+  getDynamicSections,
   getPublicPropertySectionBySlug,
   hasSectionContent,
   valueOrFallback,
 } from './_lib/page-content';
+import { DynamicSection } from './_components/DynamicSection';
 
 export default async function PropertyHomePage({
   params,
@@ -19,6 +21,7 @@ export default async function PropertyHomePage({
 
   const section = property.pageContent;
   const isEmpty = !hasSectionContent(section);
+  const dynamicSections = getDynamicSections(section);
 
   return (
     <section className="space-y-6 py-6">
@@ -32,6 +35,14 @@ export default async function PropertyHomePage({
           <Text className="whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
           <Heading level={3}>{valueOrFallback(section?.amenitiesTitle)}</Heading>
           <Text className="whitespace-pre-wrap">{valueOrFallback(section?.amenitiesText)}</Text>
+
+          {dynamicSections.length > 0 ? (
+            <div className="space-y-4">
+              {dynamicSections.map((block, index) => (
+                <DynamicSection key={`home-block-${index}`} block={block} />
+              ))}
+            </div>
+          ) : null}
         </>
       )}
 

@@ -45,6 +45,37 @@ Notes:
 	- `app/admin/properties/[propertyId]/contenidos/page.tsx`
 	- `app/(public)/properties/[slug]/_lib/page-content.ts`
 
+### Media-Ready pageContent
+
+- `pageContent` supports legacy text fields and media blocks (`sections[]`) per page section.
+- Supported block types: `text`, `image`, `carousel` (compatibility aliases: `text_block`, `gallery`).
+- Public renderer uses `app/(public)/properties/[slug]/_components/DynamicSection.tsx`.
+
+### Photos Admin Flow
+
+- Photos workspace: `Backoffice -> /admin/properties/[propertyId]/fotos`.
+- Uploads are sent to Supabase Storage bucket `property-media` by default (override with `SUPABASE_STORAGE_BUCKET`).
+- Each uploaded image can be:
+	- copied as URL
+	- assigned to a page/slot, which appends an `image` block into `pageContent[section].sections`.
+
+### Internal Health Check (Env)
+
+- Endpoint: `GET /api/internal/env-check`
+- Purpose: validate image-upload related env vars without exposing secret values.
+- Auth headers (one of):
+	- `x-healthcheck-token: $HEALTHCHECK_TOKEN`
+	- `x-ical-auto-sync-token: $ICAL_AUTO_SYNC_TOKEN`
+	- `Authorization: Bearer $CRON_SECRET`
+- In local dev (`NODE_ENV!=production`), endpoint is accessible without token.
+
+Example:
+
+```bash
+curl -X GET http://localhost:3000/api/internal/env-check \
+  -H "x-healthcheck-token: $HEALTHCHECK_TOKEN"
+```
+
 ## Invite Email Setup (Resend)
 
 To make invitation emails work, configure both:

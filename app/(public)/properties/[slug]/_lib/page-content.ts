@@ -1,21 +1,21 @@
 import { prisma } from '@infra/prisma';
-import { pageContentSchema, type PageContentSectionKey } from '@/lib/schemas/property';
+import {
+  mediaSectionBlockSchema,
+  pageContentSchema,
+  type MediaSectionBlock,
+  type PageContentSectionKey,
+} from '@/lib/schemas/property';
 
 type PropertyPublicContent = {
   slug: string;
   name: string;
   imageUrls: string[];
-  pageContent: Record<string, string> | null;
+  pageContent: Record<string, unknown> | null;
 };
 
-function toSectionRecord(value: unknown): Record<string, string> | null {
+function toSectionRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-
-  const out: Record<string, string> = {};
-  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    out[key] = typeof raw === 'string' ? raw : '';
-  }
-  return out;
+  return value as Record<string, unknown>;
 }
 
 export async function getPublicPropertySectionBySlug(
@@ -45,11 +45,34 @@ export async function getPublicPropertySectionBySlug(
   };
 }
 
-export function hasSectionContent(section: Record<string, string> | null): boolean {
+export function hasSectionContent(section: Record<string, unknown> | null): boolean {
   if (!section) return false;
-  return Object.values(section).some((value) => value.trim().length > 0);
+
+  const hasAnyText = Object.values(section).some(
+    (value) => typeof value === 'string' && value.trim().length > 0
+  );
+
+  if (hasAnyText) return true;
+
+  const rawSections = section.sections;
+  return Array.isArray(rawSections) && rawSections.length > 0;
 }
 
-export function valueOrFallback(value: string | undefined, fallback = 'Contenido en preparación...') {
+export function valueOrFallback(value: unknown, fallback = 'Contenido en preparación...') {
+  if (typeof value !== 'string') return fallback;
   return value && value.trim().length > 0 ? value : fallback;
+}
+
+export function getDynamicSections(section: Record<string, unknown> | null): MediaSectionBlock[] {
+  if (!section) return [];
+
+  const rawSections = section.sections;
+  if (!Array.isArray(rawSections)) return [];
+
+  return rawSections
+    .map((block) => {
+      const parsed = mediaSectionBlockSchema.safeParse(block);
+      return parsed.success ? parsed.data : null;
+    })
+    .filter((block): block is MediaSectionBlock => block !== null);
 }

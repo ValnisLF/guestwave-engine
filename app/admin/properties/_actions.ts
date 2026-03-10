@@ -1,11 +1,17 @@
 'use server';
 
 import { prisma } from '@infra/prisma';
+import { createClient } from '@supabase/supabase-js';
 import { syncPropertyIcal, syncPropertyIcalCalendar } from '@infra/ical/sync';
 import { refundStripePayment } from '@infra/stripe';
 import { PropertyService } from '@features/properties/property.service';
 import {
+  photoAssignmentTargetSchema,
+  type PhotoAssignmentTarget,
+} from '@/lib/page-content-targets';
+import {
   createPropertySchema,
+  mediaSectionBlockSchema,
   pageContentSchema,
   pageContentSectionSchemas,
   type PageContentSectionKey,
@@ -142,6 +148,19 @@ export type UpdatePropertyPageContentSectionInput = {
   sectionData: unknown;
 };
 
+export type UploadPropertyPhotoInput = {
+  propertyId: string;
+  file: File;
+};
+
+export type AssignPhotoToPageContentInput = {
+  propertyId: string;
+  imageUrl: string;
+  target: PhotoAssignmentTarget;
+};
+
+const SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'property-media';
+
 const bookingPrefixSchema = z
   .string()
   .trim()
@@ -197,6 +216,263 @@ const updatePropertySettingsSchema = z.object({
   fontFamily: optionalTextSchema(120),
   pageContent: pageContentSchema.optional(),
 });
+
+function createSupabaseStorageClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+function inferFileExtension(file: File) {
+  const filename = file.name || '';
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex >= 0 && dotIndex < filename.length - 1) {
+    return filename.slice(dotIndex + 1).toLowerCase();
+  }
+
+  if (file.type === 'image/png') return 'png';
+  if (file.type === 'image/webp') return 'webp';
+  if (file.type === 'image/gif') return 'gif';
+  return 'jpg';
+}
+
+function resolvePhotoTarget(target: PhotoAssignmentTarget): {
+  section: PageContentSectionKey;
+  title: string;
+} {
+  const [section, slot] = target.split(':') as [PageContentSectionKey, string];
+
+  const titleMap: Record<string, string> = {
+    hero: 'Hero',
+    amenities: 'Amenities',
+    groundFloor: 'Planta baja',
+    firstFloor: 'Primera planta',
+    exterior: 'Exterior',
+    queHacer: 'Que hacer',
+    queVisitar: 'Que visitar',
+    queComer: 'Que comer',
+    instructions: 'Instrucciones',
+    temporadaAlta: 'Temporada alta',
+    temporadaMedia: 'Temporada media',
+    temporadaBaja: 'Temporada baja',
+    politicas: 'Politicas',
+    general: 'General',
+  };
+
+  return {
+    section,
+    title: titleMap[slot] ?? slot,
+  };
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function asSections(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+export async function uploadPropertyPhoto(
+  input: UploadPropertyPhotoInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const propertyId = z.string().min(1, 'Property id is required').parse(input.propertyId);
+    const file = input.file;
+
+    if (!(file instanceof File)) {
+      return {
+        success: false,
+        error: 'No se encontro el archivo a subir',
+      };
+    }
+
+    if (!file.type.startsWith('image/')) {
+      return {
+        success: false,
+        error: 'Solo se permiten imagenes',
+      };
+    }
+
+    if (file.size <= 0) {
+      return {
+        success: false,
+        error: 'El archivo esta vacio',
+      };
+    }
+
+    const maxBytes = 10 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return {
+        success: false,
+        error: 'Tamano maximo de imagen: 10MB',
+      };
+    }
+
+    const access = await requirePropertyAccess(propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const supabase = createSupabaseStorageClient();
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Configura NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY para subir imagenes',
+      };
+    }
+
+    const extension = inferFileExtension(file);
+    const filePath = `properties/${propertyId}/${Date.now()}-${randomUUID()}.${extension}`;
+
+    const upload = await supabase.storage
+      .from(SUPABASE_STORAGE_BUCKET)
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (upload.error) {
+      return {
+        success: false,
+        error: `No se pudo subir la imagen: ${upload.error.message}`,
+      };
+    }
+
+    const publicUrl = supabase.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(filePath).data.publicUrl;
+
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { imageUrls: true },
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
+    const nextUrls = Array.from(new Set([...(property.imageUrls ?? []), publicUrl]));
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        imageUrls: nextUrls,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        url: publicUrl,
+        bucket: SUPABASE_STORAGE_BUCKET,
+      },
+    };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('uploadPropertyPhoto error:', error);
+    return {
+      success: false,
+      error: 'Error subiendo imagen',
+    };
+  }
+}
+
+export async function assignPhotoToPageContent(
+  input: AssignPhotoToPageContentInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const propertyId = z.string().min(1, 'Property id is required').parse(input.propertyId);
+    const imageUrl = z.string().url('Image URL must be valid').parse(input.imageUrl);
+    const target = photoAssignmentTargetSchema.parse(input.target);
+
+    const access = await requirePropertyAccess(propertyId, userId);
+    if (!access.ok) return access.response;
+
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { pageContent: true },
+    });
+
+    if (!property) {
+      return {
+        success: false,
+        error: 'Property not found',
+      };
+    }
+
+    const currentPageContent = asObject(property.pageContent);
+    const { section, title } = resolvePhotoTarget(target);
+    const currentSection = asObject(currentPageContent[section]);
+    const existingSections = asSections(currentSection.sections);
+
+    const nextBlock = mediaSectionBlockSchema.parse({
+      type: 'image',
+      title,
+      image: imageUrl,
+    });
+
+    const mergedSection = {
+      ...currentSection,
+      sections: [...existingSections, nextBlock],
+    };
+
+    const mergedPageContent = {
+      ...currentPageContent,
+      [section]: mergedSection,
+    };
+
+    const validatedPageContent = pageContentSchema.partial().parse(mergedPageContent);
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        pageContent: validatedPageContent,
+      },
+    });
+
+    return {
+      success: true,
+      data: {
+        section,
+        target,
+      },
+    };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('assignPhotoToPageContent error:', error);
+    return {
+      success: false,
+      error: 'Error asignando imagen a pageContent',
+    };
+  }
+}
 
 export async function updatePropertySettings(
   input: UpdatePropertySettingsInput,

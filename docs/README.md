@@ -46,6 +46,31 @@ UI convention:
 	- `primaryColor`, `accentColor`, `fontFamily`.
 - Legacy Home fields (`homeHeroTitle`, `homeHeroSubtitle`, `homeDescription`) are deprecated and removed from active write paths.
 
+### Media-ready blocks
+
+- `Property.pageContent` now accepts media-ready blocks in `sections[]` for each page section.
+- Block types supported by frontend renderer:
+	- `text`
+	- `image`
+	- `carousel`
+- Compatibility aliases accepted in JSON:
+	- `text_block` -> `text`
+	- `gallery` -> `carousel`
+
+### Fotos -> pageContent assignment
+
+- Route: `app/admin/properties/[propertyId]/fotos/page.tsx`.
+- Upload target: Supabase Storage bucket (`SUPABASE_STORAGE_BUCKET`, default `property-media`).
+- Assignment action inserts an `image` block into `pageContent[section].sections`.
+
+### Internal env health-check
+
+- Route: `GET /api/internal/env-check`.
+- Validates only presence/format of env vars needed by image upload:
+	- `NEXT_PUBLIC_SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+	- `SUPABASE_STORAGE_BUCKET`
+
 ## Primeros 10 minutos
 
 Checklist rapido para un desarrollador nuevo:

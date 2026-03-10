@@ -65,6 +65,7 @@ Si ves mensajes sobre variables faltantes, revisa `.env.local`.
    NEXT_PUBLIC_SUPABASE_URL = "https://prod-project.supabase.co"
    NEXT_PUBLIC_SUPABASE_ANON_KEY = "..." (claves de producción)
    SUPABASE_SERVICE_ROLE_KEY = "..."
+   SUPABASE_STORAGE_BUCKET = "property-media" (opcional, por defecto `property-media`)
    ```
 
 3. **Stripe (Claves en vivo)**
@@ -88,6 +89,7 @@ Si ves mensajes sobre variables faltantes, revisa `.env.local`.
 6. **Auto-sync iCal (interno)**
    ```
    ICAL_AUTO_SYNC_TOKEN = "<token-seguro-largo>"
+   HEALTHCHECK_TOKEN = "<token-seguro-largo>" (opcional para `/api/internal/env-check`)
    ```
 
 ### En Vercel:
@@ -160,6 +162,16 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY; // ✅ OK (solo server)
 
 ### Error: "DATABASE_URL is not defined"
 → Verifica que `.env.local` existe y `DATABASE_URL` está configurado
+
+### Error subiendo imagen: "Invalid supabaseUrl"
+→ Revisa que `NEXT_PUBLIC_SUPABASE_URL` sea una URL completa `https://...supabase.co`
+→ Evita comillas adicionales o espacios al copiar variables
+→ Verifica formato con el endpoint interno:
+
+```bash
+curl -X GET http://localhost:3000/api/internal/env-check \
+   -H "x-healthcheck-token: $HEALTHCHECK_TOKEN"
+```
 
 ### Error: "Stripe key is missing"
 → Asegúrate que `STRIPE_SECRET_KEY` está en `.env.local` (server-side)

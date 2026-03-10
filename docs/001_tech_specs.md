@@ -48,7 +48,24 @@ Usamos Next.js 14 con App Router organizado por **Route Groups**:
 
 ### Personalización de Property (Branding + CMS Ligero)
 - **Estilos:** `primaryColor`, `accentColor`, `fontFamily`.
-- **Contenido dinámico:** `pageContent` (`Json`) para almacenar contenido estructurado editable de páginas públicas (Turismo, La Propiedad y Tarifas).
+- **Contenido dinámico:** `pageContent` (`Json`) para almacenar contenido estructurado editable de páginas públicas (`homePage`, `laPropiedad`, `turismo`, `reservas`, `tarifas`, `contacto`).
+- **Media-Ready JSON:** cada sección puede incluir `sections[]` con bloques por tipo:
+	- `text` / `text_block`
+	- `image`
+	- `carousel` / `gallery`
+
+### Flujo de Fotos y Asignación de Media
+- **Backoffice Fotos:** `/admin/properties/[propertyId]/fotos`.
+- **Upload engine:** Supabase Storage (`SUPABASE_STORAGE_BUCKET`, default `property-media`).
+- **Asignación:** cada imagen subida puede insertarse en `pageContent[section].sections` como bloque `image`.
+- **Render público:** `DynamicSection` selecciona componente por `type` y renderiza texto, imagen o carrusel.
+
+### Health-check interno de entorno
+- Endpoint: `GET /api/internal/env-check`.
+- Verifica presencia/formato de variables críticas del flujo de imágenes:
+	- `NEXT_PUBLIC_SUPABASE_URL`
+	- `SUPABASE_SERVICE_ROLE_KEY`
+	- `SUPABASE_STORAGE_BUCKET`
 
 ## Reglas Críticas de Negocio
 1. **Prevención de Overbooking:** Toda reserva confirmada debe insertar bloqueos en `blocked_dates` mediante una transacción de base de datos.
