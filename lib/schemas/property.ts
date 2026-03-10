@@ -6,113 +6,214 @@
 
 import { z } from 'zod';
 
+const MediaItemSchema = z.object({
+  url: z.string().url(),
+  label: z.string().optional(),
+  alt: z.string().optional(),
+});
+
+const CardItemSchema = z.object({
+  image: z.string().url(),
+  title: z.string(),
+  subtitle: z.string().optional(),
+  link: z.string().optional(),
+});
+
+export const PropertyPageContentSchema = z.object({
+  theme: z
+    .object({
+      primaryColor: z.string().optional(),
+      accentColor: z.string().optional(),
+    })
+    .optional(),
+
+  header: z.object({
+    logoUrl: z.string().url().optional(),
+  }),
+
+  footer: z.object({
+    logoUrl: z.string().url().optional(),
+    shortText: z.string().optional(),
+    instagramUrl: z.string().url().optional(),
+    googleUrl: z.string().url().optional(),
+    phone: z.string().optional(),
+    email: z.string().email().optional(),
+    address: z.string().optional(),
+    coordinates: z.string().optional(),
+  }),
+
+  homepage: z.object({
+    hero: z.object({
+      image: z.string().url().optional(),
+      title: z.string(),
+      subtitle: z.string().optional(),
+    }),
+    intro: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+    }),
+    amenities: z.object({
+      title: z.string(),
+      paragraph: z.string().optional(),
+      items: z.array(z.string()).optional(),
+      image: z.string().url().optional(),
+    }),
+    availability: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+    }),
+    areaCarousel: z.array(
+      z.object({
+        url: z.string().url(),
+        title: z.string().optional(),
+        subtitle: z.string().optional(),
+      })
+    ),
+  }),
+
+  laPropiedad: z.object({
+    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    intro: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+    }),
+    groundFloor: z.object({
+      title: z.string(),
+      paragraph: z.string().optional(),
+      items: z.array(z.string()).optional(),
+      image: z.string().url().optional(),
+    }),
+    firstFloor: z.object({
+      title: z.string(),
+      paragraph: z.string().optional(),
+      items: z.array(z.string()).optional(),
+      image: z.string().url().optional(),
+    }),
+    exterior: z.object({
+      title: z.string(),
+      paragraph: z.string().optional(),
+      items: z.array(z.string()).optional(),
+      image: z.string().url().optional(),
+    }),
+    gallery: z.array(MediaItemSchema),
+  }),
+
+  turismo: z.object({
+    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    queHacer: z.array(CardItemSchema),
+    queVisitar: z.array(CardItemSchema),
+    queComer: z.array(CardItemSchema),
+  }),
+
+  reservas: z.object({
+    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    intro: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+    }),
+    instructions: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+      items: z.array(z.string()).optional(),
+    }),
+  }),
+
+  tarifas: z.object({
+    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    intro: z.object({
+      title: z.string().optional(),
+      paragraph: z.string().optional(),
+    }),
+    pricingTable: z.any().optional(),
+    offers: z.array(CardItemSchema),
+    rules: z.array(z.string()).optional(),
+    policy: z.array(z.string()).optional(),
+  }),
+
+  contacto: z.object({
+    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    intro: z.object({ title: z.string(), paragraph: z.string() }),
+    phone: z.string().optional(),
+    email: z.string().email().optional(),
+    address: z.string().optional(),
+  }),
+});
+
+export type PropertyPageContent = z.infer<typeof PropertyPageContentSchema>;
+
+export function createEmptyPropertyPageContent(): PropertyPageContent {
+  return {
+    theme: {},
+    header: {},
+    footer: {},
+    homepage: {
+      hero: { image: '', title: '', subtitle: '' },
+      intro: { title: '', paragraph: '' },
+      amenities: { title: '', paragraph: '', items: [], image: '' },
+      availability: { title: '', paragraph: '' },
+      areaCarousel: [],
+    },
+    laPropiedad: {
+      hero: { image: '', title: '' },
+      intro: { title: '', paragraph: '' },
+      groundFloor: { title: '', paragraph: '', items: [], image: '' },
+      firstFloor: { title: '', paragraph: '', items: [], image: '' },
+      exterior: { title: '', paragraph: '', items: [], image: '' },
+      gallery: [],
+    },
+    turismo: {
+      hero: { image: '', title: '' },
+      queHacer: [],
+      queVisitar: [],
+      queComer: [],
+    },
+    reservas: {
+      hero: { image: '', title: '' },
+      intro: { title: '', paragraph: '' },
+      instructions: { title: '', paragraph: '', items: [] },
+    },
+    tarifas: {
+      hero: { image: '', title: '' },
+      intro: { title: '', paragraph: '' },
+      pricingTable: undefined,
+      offers: [],
+      rules: [],
+      policy: [],
+    },
+    contacto: {
+      hero: { image: '', title: '' },
+      intro: { title: '', paragraph: '' },
+      phone: '',
+      email: '',
+      address: '',
+    },
+  };
+}
+
+// Compatibility exports used by legacy admin actions/files.
+export const pageContentSectionSchemas = {
+  homePage: PropertyPageContentSchema.shape.homepage,
+  laPropiedad: PropertyPageContentSchema.shape.laPropiedad,
+  turismo: PropertyPageContentSchema.shape.turismo,
+  reservas: PropertyPageContentSchema.shape.reservas,
+  tarifas: PropertyPageContentSchema.shape.tarifas,
+  contacto: PropertyPageContentSchema.shape.contacto,
+} as const;
+
+export const pageContentSchema = PropertyPageContentSchema;
+export type PageContent = PropertyPageContent;
+export type PageContentSectionKey = keyof typeof pageContentSectionSchemas;
+
 export const mediaItemSchema = z.string().url('MediaItem debe ser una URL válida');
 export type MediaItem = z.infer<typeof mediaItemSchema>;
 
-const mediaTextBlockSchema = z.object({
-  type: z.enum(['text', 'text_block']),
-  title: z.string().optional(),
-  content: z.string(),
-});
-
-const mediaImageBlockSchema = z.object({
+export const mediaSectionBlockSchema = z.object({
   type: z.literal('image'),
-  image: mediaItemSchema,
-  alt: z.string().optional(),
-  caption: z.string().optional(),
-});
-
-const mediaCarouselBlockSchema = z.object({
-  type: z.enum(['carousel', 'gallery']),
-  layout: z.enum(['carousel']).optional(),
-  images: z.array(mediaItemSchema).min(1, 'Carousel requiere al menos una imagen'),
   title: z.string().optional(),
-});
-
-export const mediaSectionBlockSchema = z.union([
-  mediaTextBlockSchema,
-  mediaImageBlockSchema,
-  mediaCarouselBlockSchema,
-]);
-
-export const mediaReadySectionSchema = z.object({
-  sections: z.array(mediaSectionBlockSchema),
+  image: mediaItemSchema,
 });
 
 export type MediaSectionBlock = z.infer<typeof mediaSectionBlockSchema>;
-export type MediaReadySection = z.infer<typeof mediaReadySectionSchema>;
-
-const pageBlockSchema = z.object({
-  overlayHeroTitle: z.string(),
-  overlayHeroSubtitle: z.string(),
-  shortBioTitle: z.string(),
-  shorBioText: z.string(),
-});
-
-export const pageContentSectionSchemas = {
-  homePage: z.union([
-    pageBlockSchema.extend({
-      amenitiesTitle: z.string(),
-      amenitiesText: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-  laPropiedad: z.union([
-    pageBlockSchema.extend({
-      groundFloorTitle: z.string(),
-      groundFloorText: z.string(),
-      firstFloorTitle: z.string(),
-      firstFloorText: z.string(),
-      exteriorTitle: z.string(),
-      exteriorText: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-  turismo: z.union([
-    pageBlockSchema.extend({
-      queHacerTitle: z.string(),
-      queVisitarTitle: z.string(),
-      queComerTitle: z.string(),
-      queHacerText: z.string(),
-      queVisitarText: z.string(),
-      queComerText: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-  reservas: z.union([
-    pageBlockSchema.extend({
-      instructions: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-  tarifas: z.union([
-    pageBlockSchema.extend({
-      temporadaAlta: z.string(),
-      temporadaMedia: z.string(),
-      temporadaBaja: z.string(),
-      politicas: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-  contacto: z.union([
-    pageBlockSchema.extend({
-      telefono: z.string(),
-      email: z.string(),
-      direccion: z.string(),
-      sections: z.array(mediaSectionBlockSchema).optional(),
-    }),
-    mediaReadySectionSchema,
-  ]),
-} as const;
-
-export const pageContentSchema = z.object(pageContentSectionSchemas);
-export type PageContent = z.infer<typeof pageContentSchema>;
-export type PageContentSectionKey = keyof typeof pageContentSectionSchemas;
 
 /**
  * Schema para crear una nueva propiedad

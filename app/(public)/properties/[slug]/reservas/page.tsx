@@ -3,14 +3,9 @@ import { notFound } from 'next/navigation';
 import { PricingCalculator } from '../_components/PricingCalculator';
 import { PropertyCalendar } from '../_components/PropertyCalendar';
 import { Metadata } from 'next';
+import Image from 'next/image';
 import { Heading, Text } from '@/components/ui/typography';
-import {
-  getDynamicSections,
-  getPublicPropertySectionBySlug,
-  hasSectionContent,
-  valueOrFallback,
-} from '../_lib/page-content';
-import { DynamicSection } from '../_components/DynamicSection';
+import { PropertyPageContentSchema, createEmptyPropertyPageContent } from '@/lib/schemas/property';
 
 export async function generateMetadata({
   params,
@@ -38,10 +33,10 @@ export async function generateMetadata({
 export default async function PropertyReservationsPage({
   params,
   searchParams,
-}: {
+}: Readonly<{
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ checkout?: string; bookingCode?: string; bookingId?: string }>;
-}) {
+}>) {
   const { slug } = await params;
   const { checkout, bookingCode, bookingId } = await searchParams;
   const publicBookingCode = bookingCode ?? bookingId;
@@ -69,10 +64,9 @@ export default async function PropertyReservationsPage({
     notFound();
   }
 
-  const contentProperty = await getPublicPropertySectionBySlug(slug, 'reservas');
-  const section = contentProperty?.pageContent ?? null;
-  const hasContent = hasSectionContent(section);
-  const dynamicSections = getDynamicSections(section);
+  const parsed = PropertyPageContentSchema.safeParse(property.pageContent);
+  const content = parsed.success ? parsed.data : createEmptyPropertyPageContent();
+  const section = content.reservas;
 
   const unavailableDates = property.blockedDates.map((bd) => ({
     startDate: new Date(bd.startDate),
@@ -94,28 +88,29 @@ export default async function PropertyReservationsPage({
         </div>
       )}
 
-      <div className="mb-8">
-        {hasContent ? (
-          <>
-            <Heading level={2} tone="primary">{valueOrFallback(section?.overlayHeroTitle)}</Heading>
-            <Text className="mt-2 text-lg" tone="muted">
-              {valueOrFallback(section?.overlayHeroSubtitle)}
-            </Text>
-            <Heading level={4} className="mt-4">{valueOrFallback(section?.shortBioTitle)}</Heading>
-            <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
-            <Text className="mt-2 whitespace-pre-wrap">{valueOrFallback(section?.instructions)}</Text>
+      <div className="mb-8 space-y-4">
+        {section.hero.image ? (
+          <div className="relative h-[46vh] overflow-hidden rounded-2xl">
+            <Image src={section.hero.image} alt={section.hero.title || 'Reservas'} fill className="object-cover" unoptimized />
+            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 flex items-center justify-center text-white">
+              <Heading level={2} className="text-white">{section.hero.title || 'Reservas'}</Heading>
+            </div>
+          </div>
+        ) : null}
 
-            {dynamicSections.length > 0 ? (
-              <div className="mt-4 space-y-4">
-                {dynamicSections.map((block, index) => (
-                  <DynamicSection key={`reservas-block-${index}`} block={block} />
-                ))}
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <Text>Contenido en preparación...</Text>
-        )}
+        {section.intro.title ? <Heading level={4}>{section.intro.title}</Heading> : null}
+        {section.intro.paragraph ? <Text className="whitespace-pre-wrap">{section.intro.paragraph}</Text> : null}
+
+        {section.instructions.title ? <Heading level={4}>{section.instructions.title}</Heading> : null}
+        {section.instructions.paragraph ? <Text className="whitespace-pre-wrap">{section.instructions.paragraph}</Text> : null}
+        {section.instructions.items && section.instructions.items.length > 0 ? (
+          <ul className="list-disc space-y-1 pl-5 text-slate-700">
+            {section.instructions.items.map((item, idx) => (
+              <li key={`${item}-${idx}`}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

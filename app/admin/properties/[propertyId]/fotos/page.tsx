@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { PhotoAssignmentTarget } from '@/lib/page-content-targets';
 import { photoAssignmentTargetSchema } from '@/lib/page-content-targets';
 import { getAuthenticatedAdminEmail, canManagePropertyByEmail } from '@/lib/admin-auth';
-import { mediaSectionBlockSchema, pageContentSchema, type PageContentSectionKey } from '@/lib/schemas/property';
+import { PropertyPageContentSchema, createEmptyPropertyPageContent } from '@/lib/schemas/property';
 import { randomUUID } from 'crypto';
 import { PhotoGalleryManager } from './_components/PhotoGalleryManager';
 
@@ -44,10 +44,10 @@ function asSections(value: unknown): unknown[] {
 }
 
 function resolvePhotoTarget(target: PhotoAssignmentTarget): {
-  section: PageContentSectionKey;
+  section: string;
   title: string;
 } {
-  const [section, slot] = target.split(':') as [PageContentSectionKey, string];
+  const [section, slot] = target.split(':') as [string, string];
 
   const titleMap: Record<string, string> = {
     hero: 'Hero',
@@ -288,28 +288,50 @@ export default async function PropertyFotosPage({
         };
       }
 
-      const currentPageContent = asObject(propertyData.pageContent);
-      const { section, title } = resolvePhotoTarget(target);
-      const currentSection = asObject(currentPageContent[section]);
-      const existingSections = asSections(currentSection.sections);
+      const parsed = PropertyPageContentSchema.safeParse(propertyData.pageContent);
+      const nextContent = parsed.success ? parsed.data : createEmptyPropertyPageContent();
+      const { title } = resolvePhotoTarget(target);
 
-      const nextBlock = mediaSectionBlockSchema.parse({
-        type: 'image',
-        title,
-        image: imageUrl,
-      });
+      switch (target) {
+        case 'homePage:hero':
+          nextContent.homepage.hero.image = imageUrl;
+          break;
+        case 'homePage:amenities':
+          nextContent.homepage.amenities.image = imageUrl;
+          break;
+        case 'laPropiedad:groundFloor':
+          nextContent.laPropiedad.groundFloor.image = imageUrl;
+          break;
+        case 'laPropiedad:firstFloor':
+          nextContent.laPropiedad.firstFloor.image = imageUrl;
+          break;
+        case 'laPropiedad:exterior':
+          nextContent.laPropiedad.exterior.image = imageUrl;
+          break;
+        case 'turismo:queHacer':
+          nextContent.turismo.queHacer.push({ image: imageUrl, title });
+          break;
+        case 'turismo:queVisitar':
+          nextContent.turismo.queVisitar.push({ image: imageUrl, title });
+          break;
+        case 'turismo:queComer':
+          nextContent.turismo.queComer.push({ image: imageUrl, title });
+          break;
+        case 'reservas:instructions':
+          nextContent.reservas.hero.image = imageUrl;
+          break;
+        case 'tarifas:temporadaAlta':
+        case 'tarifas:temporadaMedia':
+        case 'tarifas:temporadaBaja':
+        case 'tarifas:politicas':
+          nextContent.tarifas.offers.push({ image: imageUrl, title });
+          break;
+        case 'contacto:general':
+          nextContent.contacto.hero.image = imageUrl;
+          break;
+      }
 
-      const mergedSection = {
-        ...currentSection,
-        sections: [...existingSections, nextBlock],
-      };
-
-      const mergedPageContent = {
-        ...currentPageContent,
-        [section]: mergedSection,
-      };
-
-      const validatedPageContent = pageContentSchema.partial().parse(mergedPageContent);
+      const validatedPageContent = PropertyPageContentSchema.parse(nextContent);
 
       await prisma.property.update({
         where: { id: propertyId },

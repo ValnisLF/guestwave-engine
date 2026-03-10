@@ -10,8 +10,9 @@ import {
   type PhotoAssignmentTarget,
 } from '@/lib/page-content-targets';
 import {
+  PropertyPageContentSchema,
+  createEmptyPropertyPageContent,
   createPropertySchema,
-  mediaSectionBlockSchema,
   pageContentSchema,
   pageContentSectionSchemas,
   type PageContentSectionKey,
@@ -146,6 +147,11 @@ export type UpdatePropertyPageContentSectionInput = {
   propertyId: string;
   section: PageContentSectionKey;
   sectionData: unknown;
+};
+
+export type UpdatePropertyContentInput = {
+  propertyId: string;
+  pageContent: unknown;
 };
 
 export type UploadPropertyPhotoInput = {
@@ -383,9 +389,11 @@ export async function uploadPropertyPhoto(
     };
   } catch (error) {
     if (error instanceof ZodError) {
+      const issue = error.issues?.[0];
+      const path = issue?.path?.join('.') ?? '';
       return {
         success: false,
-        error: error.issues?.[0]?.message ?? 'Validation error',
+        error: path ? `${path}: ${issue?.message ?? 'Validation error'}` : issue?.message ?? 'Validation error',
       };
     }
 
@@ -421,28 +429,50 @@ export async function assignPhotoToPageContent(
       };
     }
 
-    const currentPageContent = asObject(property.pageContent);
-    const { section, title } = resolvePhotoTarget(target);
-    const currentSection = asObject(currentPageContent[section]);
-    const existingSections = asSections(currentSection.sections);
+    const parsed = PropertyPageContentSchema.safeParse(property.pageContent);
+    const nextContent = parsed.success ? parsed.data : createEmptyPropertyPageContent();
+    const { title } = resolvePhotoTarget(target);
 
-    const nextBlock = mediaSectionBlockSchema.parse({
-      type: 'image',
-      title,
-      image: imageUrl,
-    });
+    switch (target) {
+      case 'homePage:hero':
+        nextContent.homepage.hero.image = imageUrl;
+        break;
+      case 'homePage:amenities':
+        nextContent.homepage.amenities.image = imageUrl;
+        break;
+      case 'laPropiedad:groundFloor':
+        nextContent.laPropiedad.groundFloor.image = imageUrl;
+        break;
+      case 'laPropiedad:firstFloor':
+        nextContent.laPropiedad.firstFloor.image = imageUrl;
+        break;
+      case 'laPropiedad:exterior':
+        nextContent.laPropiedad.exterior.image = imageUrl;
+        break;
+      case 'turismo:queHacer':
+        nextContent.turismo.queHacer.push({ image: imageUrl, title });
+        break;
+      case 'turismo:queVisitar':
+        nextContent.turismo.queVisitar.push({ image: imageUrl, title });
+        break;
+      case 'turismo:queComer':
+        nextContent.turismo.queComer.push({ image: imageUrl, title });
+        break;
+      case 'reservas:instructions':
+        nextContent.reservas.hero.image = imageUrl;
+        break;
+      case 'tarifas:temporadaAlta':
+      case 'tarifas:temporadaMedia':
+      case 'tarifas:temporadaBaja':
+      case 'tarifas:politicas':
+        nextContent.tarifas.offers.push({ image: imageUrl, title });
+        break;
+      case 'contacto:general':
+        nextContent.contacto.hero.image = imageUrl;
+        break;
+    }
 
-    const mergedSection = {
-      ...currentSection,
-      sections: [...existingSections, nextBlock],
-    };
-
-    const mergedPageContent = {
-      ...currentPageContent,
-      [section]: mergedSection,
-    };
-
-    const validatedPageContent = pageContentSchema.partial().parse(mergedPageContent);
+    const validatedPageContent = PropertyPageContentSchema.parse(nextContent);
 
     await prisma.property.update({
       where: { id: propertyId },
@@ -454,7 +484,6 @@ export async function assignPhotoToPageContent(
     return {
       success: true,
       data: {
-        section,
         target,
       },
     };
@@ -572,6 +601,41 @@ export async function updatePropertyPageContentSection(
     return {
       success: false,
       error: 'Error updating page content section',
+    };
+  }
+}
+
+export async function updatePropertyContent(
+  input: UpdatePropertyContentInput,
+  userId?: string
+): Promise<PropertyResponse> {
+  try {
+    const propertyId = z.string().min(1, 'Property id is required').parse(input.propertyId);
+    const validatedPageContent = PropertyPageContentSchema.parse(input.pageContent);
+
+    const access = await requirePropertyAccess(propertyId, userId);
+    if (!access.ok) return access.response;
+
+    await prisma.property.update({
+      where: { id: propertyId },
+      data: {
+        pageContent: validatedPageContent,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        error: error.issues?.[0]?.message ?? 'Validation error',
+      };
+    }
+
+    console.error('updatePropertyContent error:', error);
+    return {
+      success: false,
+      error: 'Error updating property content',
     };
   }
 }

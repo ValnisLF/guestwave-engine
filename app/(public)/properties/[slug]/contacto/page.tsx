@@ -1,62 +1,57 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
+import { prisma } from '@infra/prisma';
 import { Heading, Text } from '@/components/ui/typography';
-import {
-  getDynamicSections,
-  getPublicPropertySectionBySlug,
-  hasSectionContent,
-  valueOrFallback,
-} from '../_lib/page-content';
-import { DynamicSection } from '../_components/DynamicSection';
+import { PropertyPageContentSchema, createEmptyPropertyPageContent } from '@/lib/schemas/property';
 
 export default async function PropertyContactoPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ slug: string }> | { slug: string };
-}) {
+}>) {
   const resolvedParams = params instanceof Promise ? await params : params;
-  const property = await getPublicPropertySectionBySlug(resolvedParams.slug, 'contacto');
+  const property = await prisma.property.findUnique({
+    where: { slug: resolvedParams.slug },
+    select: { pageContent: true },
+  });
 
   if (!property) notFound();
 
-  const section = property.pageContent;
-  const isEmpty = !hasSectionContent(section);
-  const dynamicSections = getDynamicSections(section);
+  const parsed = PropertyPageContentSchema.safeParse(property.pageContent);
+  const content = parsed.success ? parsed.data : createEmptyPropertyPageContent();
+  const section = content.contacto;
 
   return (
     <section className="space-y-6 py-6">
-      {isEmpty ? (
-        <Text>Contenido en preparación...</Text>
-      ) : (
-        <>
-          <Heading level={1} tone="primary">{valueOrFallback(section?.overlayHeroTitle)}</Heading>
-          <Text className="text-lg" tone="muted">{valueOrFallback(section?.overlayHeroSubtitle)}</Text>
-          <Heading level={3}>{valueOrFallback(section?.shortBioTitle)}</Heading>
-          <Text className="whitespace-pre-wrap">{valueOrFallback(section?.shorBioText)}</Text>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <article className="rounded-lg border border-slate-200 bg-white p-4">
-              <Heading level={4}>Telefono</Heading>
-              <Text className="mt-2">{valueOrFallback(section?.telefono)}</Text>
-            </article>
-            <article className="rounded-lg border border-slate-200 bg-white p-4">
-              <Heading level={4}>Email</Heading>
-              <Text className="mt-2">{valueOrFallback(section?.email)}</Text>
-            </article>
-            <article className="rounded-lg border border-slate-200 bg-white p-4">
-              <Heading level={4}>Direccion</Heading>
-              <Text className="mt-2">{valueOrFallback(section?.direccion)}</Text>
-            </article>
+      {section.hero.image ? (
+        <div className="relative h-[42vh] overflow-hidden rounded-2xl">
+          <Image src={section.hero.image} alt={section.hero.title || 'Contacto'} fill className="object-cover" unoptimized />
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 flex items-center justify-center text-white">
+            <Heading level={1} className="text-white">{section.hero.title || 'Contacto'}</Heading>
           </div>
+        </div>
+      ) : null}
 
-          {dynamicSections.length > 0 ? (
-            <div className="space-y-4">
-              {dynamicSections.map((block, index) => (
-                <DynamicSection key={`contacto-block-${index}`} block={block} />
-              ))}
-            </div>
-          ) : null}
-        </>
-      )}
+      <div className="space-y-2">
+        <Heading level={3}>{section.intro.title || 'Estamos para ayudarte'}</Heading>
+        <Text className="whitespace-pre-wrap">{section.intro.paragraph || ''}</Text>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <article className="rounded-lg border border-slate-200 bg-white p-4">
+          <Heading level={4}>Telefono</Heading>
+          <Text className="mt-2">{section.phone || '-'}</Text>
+        </article>
+        <article className="rounded-lg border border-slate-200 bg-white p-4">
+          <Heading level={4}>Email</Heading>
+          <Text className="mt-2">{section.email || '-'}</Text>
+        </article>
+        <article className="rounded-lg border border-slate-200 bg-white p-4">
+          <Heading level={4}>Direccion</Heading>
+          <Text className="mt-2">{section.address || '-'}</Text>
+        </article>
+      </div>
     </section>
   );
 }

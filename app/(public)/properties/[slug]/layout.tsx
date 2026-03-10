@@ -42,6 +42,7 @@ export default async function PropertyPublicLayout({ children, params }: Propert
       primaryColor: true,
       accentColor: true,
       fontFamily: true,
+      pageContent: true,
     },
   });
 
@@ -49,8 +50,16 @@ export default async function PropertyPublicLayout({ children, params }: Propert
     notFound();
   }
 
-  const primary = sanitizeHexColor(property.primaryColor, DEFAULT_PRIMARY);
-  const accent = sanitizeHexColor(property.accentColor, DEFAULT_ACCENT);
+  const pageTheme =
+    property.pageContent && typeof property.pageContent === 'object' && !Array.isArray(property.pageContent)
+      ? ((property.pageContent as Record<string, unknown>).theme as Record<string, unknown> | undefined)
+      : undefined;
+
+  const themePrimary = typeof pageTheme?.primaryColor === 'string' ? pageTheme.primaryColor : null;
+  const themeAccent = typeof pageTheme?.accentColor === 'string' ? pageTheme.accentColor : null;
+
+  const primary = sanitizeHexColor(themePrimary ?? property.primaryColor, DEFAULT_PRIMARY);
+  const accent = sanitizeHexColor(themeAccent ?? property.accentColor, DEFAULT_ACCENT);
   const font = resolvePropertyFont(property.fontFamily);
   const propertyFontVar = font ? `--property-font:${font};` : '';
 
