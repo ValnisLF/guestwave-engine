@@ -71,6 +71,23 @@ UI convention:
 	- `SUPABASE_SERVICE_ROLE_KEY`
 	- `SUPABASE_STORAGE_BUCKET`
 
+## Páginas Públicas
+
+Documentación detallada sobre las páginas del sitio público:
+
+- **Home** (`/properties/[slug]`): Landing page principal con hero, amenidades y carousel de lugares cercanos.
+  - 📖 [PUBLIC_PAGES_HOME.md](./PUBLIC_PAGES_HOME.md)
+  
+- **La Propiedad** (`/properties/[slug]/la-propiedad`): Página de detalles exhaustivos con múltiples secciones y galería filtrable.
+  - 📖 [PUBLIC_PAGES_PROPERTY_DETAILS.md](./PUBLIC_PAGES_PROPERTY_DETAILS.md)
+
+Ambos documentos incluyen:
+- Estructura de datos y schema Zod
+- Layout responsivo y componentes internos
+- Flujo de datos desde admin hasta frontend
+- Ejemplos JSON y troubleshooting
+- Próximas mejoras opcionales
+
 ## Primeros 10 minutos
 
 Checklist rapido para un desarrollador nuevo:

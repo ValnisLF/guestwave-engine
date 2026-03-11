@@ -1,67 +1,166 @@
-import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import { notFound } from 'next/navigation';
 import { prisma } from '@infra/prisma';
-import { Heading, Text } from '@/components/ui/typography';
-import { PropertyPageContentSchema, createEmptyPropertyPageContent } from '@/lib/schemas/property';
+import { Reveal } from '@/components/public/Reveal';
+import {
+  PropertyPageContentSchema,
+  createEmptyPropertyPageContent,
+} from '@/lib/schemas/property';
+import { Metadata } from 'next';
+import { GalleryFilter } from './_components/GalleryFilter';
+import { FloorSection } from './_components/FloorSection';
 
-export default async function PropertyLaPropiedadPage({
+export async function generateMetadata({
   params,
-}: Readonly<{
-  params: Promise<{ slug: string }> | { slug: string };
-}>) {
-  const resolvedParams = params instanceof Promise ? await params : params;
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  if (!slug) {
+    return { title: 'Property Not Found' };
+  }
+
   const property = await prisma.property.findUnique({
-    where: { slug: resolvedParams.slug },
-    select: { pageContent: true },
+    where: { slug },
   });
 
-  if (!property) notFound();
+  if (!property) return { title: 'Property Not Found' };
+
+  return {
+    title: `${property.name} · La Propiedad - GuestWave`,
+    description: property.description || 'Discover this amazing property',
+  };
+}
+
+export default async function PropertyDetailsPage({
+  params,
+}: Readonly<{
+  params: Promise<{ slug: string }>;
+}>) {
+  const { slug } = await params;
+
+  if (!slug) {
+    notFound();
+  }
+
+  const property = await prisma.property.findUnique({
+    where: { slug },
+    select: {
+      slug: true,
+      pageContent: true,
+    },
+  });
+
+  if (!property) {
+    notFound();
+  }
 
   const parsed = PropertyPageContentSchema.safeParse(property.pageContent);
-  const content = parsed.success ? parsed.data : createEmptyPropertyPageContent();
-  const section = content.laPropiedad;
+  const pageContent = parsed.success ? parsed.data : createEmptyPropertyPageContent();
+  const laPropiedad = pageContent.laPropiedad;
+
+  const themeVars: React.CSSProperties = {
+    ['--primary-color' as string]: pageContent.theme?.primaryColor ?? 'var(--primary)',
+    ['--accent-color' as string]: pageContent.theme?.accentColor ?? 'var(--accent)',
+    ...(pageContent.theme?.primaryColor ? { ['--primary' as string]: pageContent.theme.primaryColor } : {}),
+  };
 
   return (
-    <section className="space-y-6 py-6">
-      {section.hero.image ? (
-        <div className="relative h-[55vh] overflow-hidden rounded-2xl">
-          <Image src={section.hero.image} alt={section.hero.title || 'La propiedad'} fill className="object-cover" unoptimized />
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="absolute inset-0 flex items-center justify-center text-center text-white">
-            <Heading level={1} className="text-white">{section.hero.title || 'La Propiedad'}</Heading>
-          </div>
+    <div style={themeVars} className="w-full bg-[color:var(--cream)] pb-16 text-slate-900">
+      {/* Hero Section */}
+      <section className="relative min-h-[50vh] w-full overflow-hidden">
+        {laPropiedad.hero.image ? (
+          <Image
+            src={laPropiedad.hero.image}
+            alt={laPropiedad.hero.title || 'La Propiedad'}
+            fill
+            className="object-cover"
+            unoptimized
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2f3f1d] to-[#546a2f]" />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/55" />
+
+        <div className="relative z-10 mx-auto flex min-h-[50vh] w-full max-w-6xl flex-col items-center justify-center px-6 text-center">
+          <Reveal>
+            <h1 className="max-w-4xl font-[var(--font-display)] text-5xl font-semibold leading-tight text-white md:text-7xl">
+              {laPropiedad.hero.title || 'La Propiedad'}
+            </h1>
+          </Reveal>
         </div>
+      </section>
+
+      {/* Intro Section */}
+      {laPropiedad.intro.title || laPropiedad.intro.paragraph ? (
+        <section className="mx-auto mt-20 w-full max-w-4xl px-6 text-center">
+          <Reveal>
+            {laPropiedad.intro.title ? (
+              <h2 className="font-[var(--font-display)] text-3xl font-semibold leading-tight text-[color:var(--primary-color)] md:text-4xl">
+                {laPropiedad.intro.title}
+              </h2>
+            ) : null}
+            {laPropiedad.intro.paragraph ? (
+              <p className="mx-auto mt-5 max-w-3xl whitespace-pre-wrap text-base leading-relaxed text-slate-700 md:text-lg">
+                {laPropiedad.intro.paragraph}
+              </p>
+            ) : null}
+          </Reveal>
+        </section>
       ) : null}
 
-      {section.intro.title ? <Heading level={3}>{section.intro.title}</Heading> : null}
-      {section.intro.paragraph ? <Text className="whitespace-pre-wrap">{section.intro.paragraph}</Text> : null}
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-lg border border-slate-200 bg-white p-4">
-          <Heading level={4}>{section.groundFloor.title || 'Planta baja'}</Heading>
-          {section.groundFloor.paragraph ? <Text className="mt-2 whitespace-pre-wrap">{section.groundFloor.paragraph}</Text> : null}
-        </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-4">
-          <Heading level={4}>{section.firstFloor.title || 'Primera planta'}</Heading>
-          {section.firstFloor.paragraph ? <Text className="mt-2 whitespace-pre-wrap">{section.firstFloor.paragraph}</Text> : null}
-        </article>
-        <article className="rounded-lg border border-slate-200 bg-white p-4">
-          <Heading level={4}>{section.exterior.title || 'Exterior'}</Heading>
-          {section.exterior.paragraph ? <Text className="mt-2 whitespace-pre-wrap">{section.exterior.paragraph}</Text> : null}
-        </article>
-      </div>
-
-      {section.gallery.length > 0 ? (
-        <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-          {section.gallery.map((image, index) => (
-            <figure key={`${image.url}-${index}`} className="mb-4 overflow-hidden rounded-xl border border-slate-200">
-              <div className="relative aspect-[4/3]">
-                <Image src={image.url} alt={image.alt ?? image.label ?? 'Galeria'} fill className="object-cover" unoptimized />
-              </div>
-            </figure>
-          ))}
-        </div>
+      {/* Planta Baja Section */}
+      {laPropiedad.groundFloor.title ? (
+        <FloorSection
+          title={laPropiedad.groundFloor.title}
+          paragraph={laPropiedad.groundFloor.paragraph}
+          image={laPropiedad.groundFloor.image}
+          items={laPropiedad.groundFloor.items}
+          backgroundColor
+          iconType="check"
+        />
       ) : null}
-    </section>
+
+      {/* Primera Planta Section */}
+      {laPropiedad.firstFloor.title ? (
+        <FloorSection
+          title={laPropiedad.firstFloor.title}
+          paragraph={laPropiedad.firstFloor.paragraph}
+          image={laPropiedad.firstFloor.image}
+          items={laPropiedad.firstFloor.items}
+          isReversed
+          iconType="bed"
+        />
+      ) : null}
+
+      {/* Exteriores Section */}
+      {laPropiedad.exterior.title ? (
+        <FloorSection
+          title={laPropiedad.exterior.title}
+          paragraph={laPropiedad.exterior.paragraph}
+          image={laPropiedad.exterior.image}
+          items={laPropiedad.exterior.items}
+          backgroundColor
+          iconType="pool"
+        />
+      ) : null}
+
+      {/* Gallery Section */}
+      {laPropiedad.gallery && laPropiedad.gallery.length > 0 ? (
+        <section className="mx-auto mt-24 w-full max-w-7xl px-6 lg:px-10">
+          <Reveal>
+            <div className="mb-12 text-center">
+              <h2 className="font-[var(--font-display)] text-3xl font-semibold text-slate-900 md:text-4xl">
+                Galería de Imágenes
+              </h2>
+            </div>
+          </Reveal>
+          <GalleryFilter items={laPropiedad.gallery} />
+        </section>
+      ) : null}
+    </div>
   );
 }
