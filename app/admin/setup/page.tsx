@@ -2,10 +2,13 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@infra/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { createAdminSession } from '@/lib/admin-session';
 import { hashPassword } from '@/lib/password';
+
+const FIELD_LABEL_CLASS = 'text-xs font-medium text-slate-700';
 
 async function setupFirstAdminAction(formData: FormData) {
   'use server';
@@ -71,15 +74,25 @@ export default async function AdminSetupPage({
           </p>
 
           <form action={setupFirstAdminAction} className="space-y-3">
-            <Input name="email" type="email" placeholder="owner@example.com" required />
-            <Input name="password" type="password" placeholder="Create password" minLength={8} required />
-            <Input
-              name="confirmPassword"
-              type="password"
-              placeholder="Confirm password"
-              minLength={8}
-              required
-            />
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="setup-email">Email</Label>
+              <Input id="setup-email" name="email" type="email" placeholder="owner@example.com" required />
+            </div>
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="setup-password">Password</Label>
+              <Input id="setup-password" name="password" type="password" placeholder="Create password" minLength={8} required />
+            </div>
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="setup-confirm-password">Confirm password</Label>
+              <Input
+                id="setup-confirm-password"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm password"
+                minLength={8}
+                required
+              />
+            </div>
             <Button type="submit" className="w-full">
               Create owner account
             </Button>

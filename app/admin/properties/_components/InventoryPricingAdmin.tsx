@@ -585,70 +585,94 @@ export function InventoryPricingAdmin({
         <CardContent>
 
         <form onSubmit={onCreateProperty} className="grid gap-4 md:grid-cols-2">
-          <Input
-            placeholder="Nombre"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <Input
-            placeholder="slug-ejemplo"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Nombre</span>
+            <Input
+              placeholder="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Slug</span>
+            <Input
+              placeholder="slug-ejemplo"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              required
+            />
+          </div>
 
-          <Textarea
-            className="md:col-span-2"
-            placeholder="Descripción"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
+          <div className="space-y-1 md:col-span-2">
+            <span className="text-xs font-medium text-slate-700">Descripción</span>
+            <Textarea
+              className="md:col-span-2"
+              placeholder="Descripción"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
 
-          <Textarea
-            className="md:col-span-2"
-            placeholder="URLs de fotos (separadas por coma o salto de línea)"
-            value={imageUrlsText}
-            onChange={(e) => setImageUrlsText(e.target.value)}
-            rows={3}
-          />
+          <div className="space-y-1 md:col-span-2">
+            <span className="text-xs font-medium text-slate-700">URLs de fotos</span>
+            <Textarea
+              className="md:col-span-2"
+              placeholder="URLs de fotos (separadas por coma o salto de línea)"
+              value={imageUrlsText}
+              onChange={(e) => setImageUrlsText(e.target.value)}
+              rows={3}
+            />
+          </div>
 
-          <Input
-            type="number"
-            min={1}
-            step="0.01"
-            placeholder="Precio base"
-            value={basePrice}
-            onChange={(e) => setBasePrice(e.target.value)}
-            required
-          />
-          <Input
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="Limpieza"
-            value={cleaningFee}
-            onChange={(e) => setCleaningFee(e.target.value)}
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Precio base</span>
+            <Input
+              type="number"
+              min={1}
+              step="0.01"
+              placeholder="Precio base"
+              value={basePrice}
+              onChange={(e) => setBasePrice(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Limpieza</span>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Limpieza"
+              value={cleaningFee}
+              onChange={(e) => setCleaningFee(e.target.value)}
+            />
+          </div>
 
-          <Input
-            type="number"
-            min={1}
-            step={1}
-            placeholder="Estancia mínima"
-            value={minimumStay}
-            onChange={(e) => setMinimumStay(e.target.value)}
-          />
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            placeholder="Depósito por defecto (%)"
-            value={depositPercentage}
-            onChange={(e) => setDepositPercentage(e.target.value)}
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Estancia mínima</span>
+            <Input
+              type="number"
+              min={1}
+              step={1}
+              placeholder="Estancia mínima"
+              value={minimumStay}
+              onChange={(e) => setMinimumStay(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Depósito por defecto (%)</span>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              placeholder="Depósito por defecto (%)"
+              value={depositPercentage}
+              onChange={(e) => setDepositPercentage(e.target.value)}
+            />
+          </div>
 
           <div className="md:col-span-2">
             <div className="mb-2 text-sm font-medium text-slate-700">Amenities (checklist)</div>
@@ -694,71 +718,92 @@ export function InventoryPricingAdmin({
         </div>
 
         <form onSubmit={onCreateSeasonRate} className="grid gap-4 md:grid-cols-3">
-          <Select
-            className="md:col-span-3"
-            value={selectedPropertyId}
-            onChange={(e) => setSelectedPropertyId(e.target.value)}
-            required
-          >
-            {properties.length === 0 ? (
-              <option value="">No hay propiedades</option>
-            ) : (
-              properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name} ({property.slug})
-                </option>
-              ))
-            )}
-          </Select>
+          <div className="space-y-1 md:col-span-3">
+            <span className="text-xs font-medium text-slate-700">Propiedad</span>
+            <Select
+              className="md:col-span-3"
+              value={selectedPropertyId}
+              onChange={(e) => setSelectedPropertyId(e.target.value)}
+              required
+            >
+              {properties.length === 0 ? (
+                <option value="">No hay propiedades</option>
+              ) : (
+                properties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name} ({property.slug})
+                  </option>
+                ))
+              )}
+            </Select>
+          </div>
 
-          <Input
-            type="date"
-            value={seasonStartDate}
-            onChange={(e) => setSeasonStartDate(e.target.value)}
-            required
-          />
-          <Input
-            type="date"
-            value={seasonEndDate}
-            onChange={(e) => setSeasonEndDate(e.target.value)}
-            required
-          />
-          <Input
-            type="number"
-            min={0.1}
-            step="0.01"
-            placeholder="Multiplicador (ej: 1.2)"
-            value={seasonMultiplier}
-            onChange={(e) => setSeasonMultiplier(e.target.value)}
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Fecha inicio</span>
+            <Input
+              type="date"
+              value={seasonStartDate}
+              onChange={(e) => setSeasonStartDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Fecha fin</span>
+            <Input
+              type="date"
+              value={seasonEndDate}
+              onChange={(e) => setSeasonEndDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Multiplicador</span>
+            <Input
+              type="number"
+              min={0.1}
+              step="0.01"
+              placeholder="Multiplicador (ej: 1.2)"
+              value={seasonMultiplier}
+              onChange={(e) => setSeasonMultiplier(e.target.value)}
+            />
+          </div>
 
-          <Input
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="Precio fijo (opcional)"
-            value={seasonFixedPrice}
-            onChange={(e) => setSeasonFixedPrice(e.target.value)}
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Precio fijo</span>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Precio fijo (opcional)"
+              value={seasonFixedPrice}
+              onChange={(e) => setSeasonFixedPrice(e.target.value)}
+            />
+          </div>
 
-          <Select
-            value={seasonPaymentMode}
-            onChange={(e) => setSeasonPaymentMode(e.target.value as 'FULL' | 'DEPOSIT')}
-          >
-            <option value="DEPOSIT">Pago con depósito</option>
-            <option value="FULL">Pago 100%</option>
-          </Select>
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Modo de pago</span>
+            <Select
+              value={seasonPaymentMode}
+              onChange={(e) => setSeasonPaymentMode(e.target.value as 'FULL' | 'DEPOSIT')}
+            >
+              <option value="DEPOSIT">Pago con depósito</option>
+              <option value="FULL">Pago 100%</option>
+            </Select>
+          </div>
 
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            disabled={seasonPaymentMode === 'FULL'}
-            placeholder="Depósito %"
-            value={seasonDepositPercentage}
-            onChange={(e) => setSeasonDepositPercentage(e.target.value)}
-          />
+          <div className="space-y-1">
+            <span className="text-xs font-medium text-slate-700">Depósito (%)</span>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              disabled={seasonPaymentMode === 'FULL'}
+              placeholder="Depósito %"
+              value={seasonDepositPercentage}
+              onChange={(e) => setSeasonDepositPercentage(e.target.value)}
+            />
+          </div>
 
           <Button
             type="submit"
@@ -804,30 +849,36 @@ export function InventoryPricingAdmin({
                 </p>
 
                 <div className="mt-2 grid gap-2 md:grid-cols-4">
-                  <Input
-                    className="md:col-span-2"
-                    type="email"
-                    placeholder="collaborator@example.com"
-                    value={inviteEmailByProperty[property.id] ?? ''}
-                    onChange={(e) =>
-                      setInviteEmailByProperty((prev) => ({
-                        ...prev,
-                        [property.id]: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-xs font-medium text-slate-700">Email colaborador</span>
+                    <Input
+                      className="md:col-span-2"
+                      type="email"
+                      placeholder="collaborator@example.com"
+                      value={inviteEmailByProperty[property.id] ?? ''}
+                      onChange={(e) =>
+                        setInviteEmailByProperty((prev) => ({
+                          ...prev,
+                          [property.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
 
-                  <Select
-                    value={inviteRoleByProperty[property.id] ?? 'OWNER'}
-                    onChange={(e) =>
-                      setInviteRoleByProperty((prev) => ({
-                        ...prev,
-                        [property.id]: e.target.value as 'OWNER',
-                      }))
-                    }
-                  >
-                    <option value="OWNER">Owner</option>
-                  </Select>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-slate-700">Rol</span>
+                    <Select
+                      value={inviteRoleByProperty[property.id] ?? 'OWNER'}
+                      onChange={(e) =>
+                        setInviteRoleByProperty((prev) => ({
+                          ...prev,
+                          [property.id]: e.target.value as 'OWNER',
+                        }))
+                      }
+                    >
+                      <option value="OWNER">Owner</option>
+                    </Select>
+                  </div>
 
                   <Button
                     type="button"
@@ -876,83 +927,107 @@ export function InventoryPricingAdmin({
                     <h4 className="mb-3 text-base font-semibold text-slate-900">Editar propiedad</h4>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <Input
-                        placeholder="Nombre"
-                        value={propertyDraftById[property.id]?.name ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'name', e.target.value)
-                        }
-                      />
-                      <Input
-                        placeholder="Slug"
-                        value={propertyDraftById[property.id]?.slug ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'slug', e.target.value)
-                        }
-                      />
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Nombre</span>
+                        <Input
+                          placeholder="Nombre"
+                          value={propertyDraftById[property.id]?.name ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'name', e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Slug</span>
+                        <Input
+                          placeholder="Slug"
+                          value={propertyDraftById[property.id]?.slug ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'slug', e.target.value)
+                          }
+                        />
+                      </div>
 
-                      <Textarea
-                        className="md:col-span-2"
-                        rows={3}
-                        placeholder="Descripción"
-                        value={propertyDraftById[property.id]?.description ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'description', e.target.value)
-                        }
-                      />
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-xs font-medium text-slate-700">Descripción</span>
+                        <Textarea
+                          className="md:col-span-2"
+                          rows={3}
+                          placeholder="Descripción"
+                          value={propertyDraftById[property.id]?.description ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'description', e.target.value)
+                          }
+                        />
+                      </div>
 
-                      <Textarea
-                        className="md:col-span-2"
-                        rows={3}
-                        placeholder="URLs de fotos (coma o salto de línea)"
-                        value={propertyDraftById[property.id]?.imageUrlsText ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'imageUrlsText', e.target.value)
-                        }
-                      />
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-xs font-medium text-slate-700">URLs de fotos</span>
+                        <Textarea
+                          className="md:col-span-2"
+                          rows={3}
+                          placeholder="URLs de fotos (coma o salto de línea)"
+                          value={propertyDraftById[property.id]?.imageUrlsText ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'imageUrlsText', e.target.value)
+                          }
+                        />
+                      </div>
 
-                      <Input
-                        type="number"
-                        min={1}
-                        step="0.01"
-                        placeholder="Precio base"
-                        value={propertyDraftById[property.id]?.basePrice ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'basePrice', e.target.value)
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        placeholder="Limpieza"
-                        value={propertyDraftById[property.id]?.cleaningFee ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'cleaningFee', e.target.value)
-                        }
-                      />
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Precio base</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          step="0.01"
+                          placeholder="Precio base"
+                          value={propertyDraftById[property.id]?.basePrice ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'basePrice', e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Limpieza</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="Limpieza"
+                          value={propertyDraftById[property.id]?.cleaningFee ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'cleaningFee', e.target.value)
+                          }
+                        />
+                      </div>
 
-                      <Input
-                        type="number"
-                        min={1}
-                        step={1}
-                        placeholder="Estancia mínima"
-                        value={propertyDraftById[property.id]?.minimumStay ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'minimumStay', e.target.value)
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={1}
-                        placeholder="Depósito %"
-                        value={propertyDraftById[property.id]?.depositPercentage ?? ''}
-                        onChange={(e) =>
-                          onUpdatePropertyDraftField(property.id, 'depositPercentage', e.target.value)
-                        }
-                      />
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Estancia mínima</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          step={1}
+                          placeholder="Estancia mínima"
+                          value={propertyDraftById[property.id]?.minimumStay ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'minimumStay', e.target.value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Depósito (%)</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={1}
+                          placeholder="Depósito %"
+                          value={propertyDraftById[property.id]?.depositPercentage ?? ''}
+                          onChange={(e) =>
+                            onUpdatePropertyDraftField(property.id, 'depositPercentage', e.target.value)
+                          }
+                        />
+                      </div>
 
                       <div className="md:col-span-2">
                         <div className="mb-2 text-sm font-medium text-slate-700">Amenities</div>
@@ -1004,7 +1079,7 @@ export function InventoryPricingAdmin({
                   </p>
 
                   <div className="mt-3 flex flex-wrap items-end gap-2">
-                    <label className="text-xs text-slate-700">
+                    <label className="text-xs font-medium text-slate-700">
                       Intervalo (min)
                       <Input
                         className="ml-2 inline-flex h-7 w-24 px-2 py-1 text-xs"
@@ -1055,18 +1130,24 @@ export function InventoryPricingAdmin({
                     <div key={calendar.id} className="rounded border border-slate-200 bg-white p-3">
                       {editingCalendarId === calendar.id ? (
                         <div className="space-y-2">
-                          <Input
-                            className="w-full"
-                            value={editCalendarName}
-                            onChange={(e) => setEditCalendarName(e.target.value)}
-                            placeholder="Nombre del calendario"
-                          />
-                          <Input
-                            className="w-full"
-                            value={editCalendarUrl}
-                            onChange={(e) => setEditCalendarUrl(e.target.value)}
-                            placeholder="https://.../calendar.ics"
-                          />
+                          <div className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700">Nombre calendario</span>
+                            <Input
+                              className="w-full"
+                              value={editCalendarName}
+                              onChange={(e) => setEditCalendarName(e.target.value)}
+                              placeholder="Nombre del calendario"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs font-medium text-slate-700">URL iCal</span>
+                            <Input
+                              className="w-full"
+                              value={editCalendarUrl}
+                              onChange={(e) => setEditCalendarUrl(e.target.value)}
+                              placeholder="https://.../calendar.ics"
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <Button
                               type="button"
@@ -1169,28 +1250,34 @@ export function InventoryPricingAdmin({
                 </div>
 
                 <div className="mt-4 grid gap-2 md:grid-cols-3">
-                  <Input
-                    className="md:col-span-1"
-                    placeholder="Nombre del calendario"
-                    value={newCalendarNameByProperty[property.id] ?? ''}
-                    onChange={(e) =>
-                      setNewCalendarNameByProperty((prev) => ({
-                        ...prev,
-                        [property.id]: e.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    className="md:col-span-2"
-                    placeholder="https://.../calendar.ics"
-                    value={newCalendarUrlByProperty[property.id] ?? ''}
-                    onChange={(e) =>
-                      setNewCalendarUrlByProperty((prev) => ({
-                        ...prev,
-                        [property.id]: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="space-y-1 md:col-span-1">
+                    <span className="text-xs font-medium text-slate-700">Nombre calendario</span>
+                    <Input
+                      className="md:col-span-1"
+                      placeholder="Nombre del calendario"
+                      value={newCalendarNameByProperty[property.id] ?? ''}
+                      onChange={(e) =>
+                        setNewCalendarNameByProperty((prev) => ({
+                          ...prev,
+                          [property.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-xs font-medium text-slate-700">URL iCal</span>
+                    <Input
+                      className="md:col-span-2"
+                      placeholder="https://.../calendar.ics"
+                      value={newCalendarUrlByProperty[property.id] ?? ''}
+                      onChange={(e) =>
+                        setNewCalendarUrlByProperty((prev) => ({
+                          ...prev,
+                          [property.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="mt-2">
                   <Button

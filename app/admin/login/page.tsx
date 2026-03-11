@@ -2,11 +2,14 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@infra/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { createAdminSession } from '@/lib/admin-session';
 import { hasAnyAdminUser } from '@/lib/admin-auth';
 import { verifyPassword } from '@/lib/password';
+
+const FIELD_LABEL_CLASS = 'text-xs font-medium text-slate-700';
 
 async function signInAction(formData: FormData) {
   'use server';
@@ -55,8 +58,14 @@ export default async function AdminLoginPage({
           {params?.error ? <Alert variant="destructive">{params.error}</Alert> : null}
 
           <form action={signInAction} className="mt-4 space-y-3">
-            <Input name="email" type="email" placeholder="you@example.com" required />
-            <Input name="password" type="password" placeholder="Password" required />
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="login-email">Email</Label>
+              <Input id="login-email" name="email" type="email" placeholder="you@example.com" required />
+            </div>
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="login-password">Password</Label>
+              <Input id="login-password" name="password" type="password" placeholder="Password" required />
+            </div>
             <Button type="submit" className="w-full">
               Sign in
             </Button>

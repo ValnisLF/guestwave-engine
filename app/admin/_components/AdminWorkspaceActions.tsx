@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createProperty, createPropertyInvite } from '@/app/admin/properties/_actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
@@ -14,6 +15,8 @@ type PropertyOption = {
   name: string;
   slug: string;
 };
+
+const FIELD_LABEL_CLASS = 'text-xs font-medium text-slate-700';
 
 export function AdminWorkspaceActions({ properties }: { properties: PropertyOption[] }) {
   const router = useRouter();
@@ -103,18 +106,26 @@ export function AdminWorkspaceActions({ properties }: { properties: PropertyOpti
           {success ? <Alert variant="success">{success}</Alert> : null}
 
           <form onSubmit={onCreateProperty} className="mt-4 space-y-3">
-            <Input
-              placeholder="Property name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-            <Input
-              placeholder="property-slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              required
-            />
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="create-property-name">Property name</Label>
+              <Input
+                id="create-property-name"
+                placeholder="Property name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className={FIELD_LABEL_CLASS} htmlFor="create-property-slug">Property slug</Label>
+              <Input
+                id="create-property-slug"
+                placeholder="property-slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                required
+              />
+            </div>
             <Button type="submit" disabled={creatingProperty} className="w-full">
               {creatingProperty ? 'Creating...' : 'Create property'}
             </Button>
@@ -131,32 +142,44 @@ export function AdminWorkspaceActions({ properties }: { properties: PropertyOpti
             <Alert>Create your first property to send OWNER invites.</Alert>
           ) : (
             <form onSubmit={onSendInvite} className="space-y-3">
-              <Select
-                value={invitePropertyId}
-                onChange={(e) => setInvitePropertyId(e.target.value)}
-                required
-              >
-                {properties.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.name} ({property.slug})
-                  </option>
-                ))}
-              </Select>
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-property-id">Property</Label>
+                <Select
+                  id="invite-property-id"
+                  value={invitePropertyId}
+                  onChange={(e) => setInvitePropertyId(e.target.value)}
+                  required
+                >
+                  {properties.map((property) => (
+                    <option key={property.id} value={property.id}>
+                      {property.name} ({property.slug})
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
-              <Input
-                type="email"
-                placeholder="collaborator@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-              />
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-collaborator-email">Collaborator email</Label>
+                <Input
+                  id="invite-collaborator-email"
+                  type="email"
+                  placeholder="collaborator@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-              <Select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as 'OWNER')}
-              >
-                <option value="OWNER">OWNER</option>
-              </Select>
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-role">Role</Label>
+                <Select
+                  id="invite-role"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as 'OWNER')}
+                >
+                  <option value="OWNER">OWNER</option>
+                </Select>
+              </div>
 
               <Button type="submit" disabled={sendingInvite} className="w-full">
                 {sendingInvite ? 'Sending...' : 'Send invite'}

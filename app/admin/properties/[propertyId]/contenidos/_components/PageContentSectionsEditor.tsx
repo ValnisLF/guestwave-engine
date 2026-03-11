@@ -149,7 +149,7 @@ export function PageContentSectionsEditor({ initialValues, action }: EditorProps
 
             {currentSection.fields.map((field) => (
               <div key={field.name} className="space-y-1">
-                <Label htmlFor={`${activeSection}-${field.name}`}>{field.label}</Label>
+                <Label className="text-xs font-medium text-slate-700" htmlFor={`${activeSection}-${field.name}`}>{field.label}</Label>
                 {field.type === 'textarea' ? (
                   <Textarea
                     id={`${activeSection}-${field.name}`}

@@ -711,69 +711,93 @@ export function OwnerPropertyWorkspace({
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
-              <Input
-                placeholder="Nombre"
-                value={setupDraft.name}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, name: e.target.value }))}
-              />
-              <Input
-                placeholder="Slug"
-                value={setupDraft.slug}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, slug: e.target.value }))}
-              />
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Nombre</span>
+                <Input
+                  placeholder="Nombre"
+                  value={setupDraft.name}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Slug</span>
+                <Input
+                  placeholder="Slug"
+                  value={setupDraft.slug}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, slug: e.target.value }))}
+                />
+              </div>
 
-              <Textarea
-                className="md:col-span-2"
-                rows={3}
-                placeholder="Descripción"
-                value={setupDraft.description}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, description: e.target.value }))}
-              />
+              <div className="space-y-1 md:col-span-2">
+                <span className="text-xs font-medium text-slate-700">Descripción</span>
+                <Textarea
+                  className="md:col-span-2"
+                  rows={3}
+                  placeholder="Descripción"
+                  value={setupDraft.description}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, description: e.target.value }))}
+                />
+              </div>
 
-              <Textarea
-                className="md:col-span-2"
-                rows={3}
-                placeholder="URLs de fotos (coma o salto de línea)"
-                value={setupDraft.imageUrlsText}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, imageUrlsText: e.target.value }))}
-              />
+              <div className="space-y-1 md:col-span-2">
+                <span className="text-xs font-medium text-slate-700">URLs de fotos</span>
+                <Textarea
+                  className="md:col-span-2"
+                  rows={3}
+                  placeholder="URLs de fotos (coma o salto de línea)"
+                  value={setupDraft.imageUrlsText}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, imageUrlsText: e.target.value }))}
+                />
+              </div>
 
-              <Input
-                type="number"
-                min={1}
-                step="0.01"
-                placeholder="Precio base"
-                value={setupDraft.basePrice}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, basePrice: e.target.value }))}
-              />
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Limpieza"
-                value={setupDraft.cleaningFee}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, cleaningFee: e.target.value }))}
-              />
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Precio base</span>
+                <Input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  placeholder="Precio base"
+                  value={setupDraft.basePrice}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, basePrice: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Limpieza</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Limpieza"
+                  value={setupDraft.cleaningFee}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, cleaningFee: e.target.value }))}
+                />
+              </div>
 
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                placeholder="Estancia mínima"
-                value={setupDraft.minimumStay}
-                onChange={(e) => setSetupDraft((p) => ({ ...p, minimumStay: e.target.value }))}
-              />
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                placeholder="Depósito %"
-                value={setupDraft.depositPercentage}
-                onChange={(e) =>
-                  setSetupDraft((p) => ({ ...p, depositPercentage: e.target.value }))
-                }
-              />
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Estancia mínima</span>
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Estancia mínima"
+                  value={setupDraft.minimumStay}
+                  onChange={(e) => setSetupDraft((p) => ({ ...p, minimumStay: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Depósito (%)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="Depósito %"
+                  value={setupDraft.depositPercentage}
+                  onChange={(e) =>
+                    setSetupDraft((p) => ({ ...p, depositPercentage: e.target.value }))
+                  }
+                />
+              </div>
 
               <div className="md:col-span-2">
                 <div className="mb-2 text-sm font-medium text-slate-700">Amenities</div>
@@ -817,18 +841,24 @@ export function OwnerPropertyWorkspace({
             <div className="mt-4 rounded border border-slate-200 p-3">
               <div className="text-sm font-semibold">Bloqueo manual</div>
               <form onSubmit={onCreateManualBlock} className="mt-2 grid gap-2 md:grid-cols-3">
-                <Input
-                  type="date"
-                  value={manualBlockStartDate}
-                  onChange={(e) => setManualBlockStartDate(e.target.value)}
-                  required
-                />
-                <Input
-                  type="date"
-                  value={manualBlockEndDate}
-                  onChange={(e) => setManualBlockEndDate(e.target.value)}
-                  required
-                />
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-slate-700">Fecha inicio</span>
+                  <Input
+                    type="date"
+                    value={manualBlockStartDate}
+                    onChange={(e) => setManualBlockStartDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-slate-700">Fecha fin</span>
+                  <Input
+                    type="date"
+                    value={manualBlockEndDate}
+                    onChange={(e) => setManualBlockEndDate(e.target.value)}
+                    required
+                  />
+                </div>
                 <Button type="submit" disabled={savingManualBlock}>
                   {savingManualBlock ? 'Guardando...' : 'Bloquear fechas'}
                 </Button>
@@ -844,7 +874,7 @@ export function OwnerPropertyWorkspace({
             <div className="mt-4 rounded border border-slate-200 p-3">
               <div className="text-sm font-semibold">Auto-sync</div>
               <div className="mt-2 flex items-end gap-2">
-                <label className="text-xs text-slate-700">
+                <label className="text-xs font-medium text-slate-700">
                   Intervalo (min)
                   <Input
                     className="mt-1 h-8 w-28"
@@ -885,14 +915,20 @@ export function OwnerPropertyWorkspace({
                 <div key={calendar.id} className="rounded border border-slate-200 p-3">
                   {editingCalendarId === calendar.id ? (
                     <div className="space-y-2">
-                      <Input
-                        value={editCalendarName}
-                        onChange={(e) => setEditCalendarName(e.target.value)}
-                      />
-                      <Input
-                        value={editCalendarUrl}
-                        onChange={(e) => setEditCalendarUrl(e.target.value)}
-                      />
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">Nombre calendario</span>
+                        <Input
+                          value={editCalendarName}
+                          onChange={(e) => setEditCalendarName(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-slate-700">URL iCal</span>
+                        <Input
+                          value={editCalendarUrl}
+                          onChange={(e) => setEditCalendarUrl(e.target.value)}
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -944,18 +980,24 @@ export function OwnerPropertyWorkspace({
             </div>
 
             <div className="mt-4 grid gap-2 md:grid-cols-3">
-              <Input
-                className="md:col-span-1"
-                placeholder="Nombre calendario"
-                value={newCalendarName}
-                onChange={(e) => setNewCalendarName(e.target.value)}
-              />
-              <Input
-                className="md:col-span-2"
-                placeholder="https://.../calendar.ics"
-                value={newCalendarUrl}
-                onChange={(e) => setNewCalendarUrl(e.target.value)}
-              />
+              <div className="space-y-1 md:col-span-1">
+                <span className="text-xs font-medium text-slate-700">Nombre calendario</span>
+                <Input
+                  className="md:col-span-1"
+                  placeholder="Nombre calendario"
+                  value={newCalendarName}
+                  onChange={(e) => setNewCalendarName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <span className="text-xs font-medium text-slate-700">URL iCal</span>
+                <Input
+                  className="md:col-span-2"
+                  placeholder="https://.../calendar.ics"
+                  value={newCalendarUrl}
+                  onChange={(e) => setNewCalendarUrl(e.target.value)}
+                />
+              </div>
             </div>
             <Button
               className="mt-2"
@@ -975,41 +1017,59 @@ export function OwnerPropertyWorkspace({
           </CardHeader>
           <CardContent>
             <form onSubmit={onCreateSeasonRate} className="grid gap-3 md:grid-cols-3">
-              <Input type="date" value={seasonStartDate} onChange={(e) => setSeasonStartDate(e.target.value)} required />
-              <Input type="date" value={seasonEndDate} onChange={(e) => setSeasonEndDate(e.target.value)} required />
-              <Input
-                type="number"
-                min={0.1}
-                step="0.01"
-                placeholder="Multiplicador"
-                value={seasonMultiplier}
-                onChange={(e) => setSeasonMultiplier(e.target.value)}
-              />
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Precio fijo"
-                value={seasonFixedPrice}
-                onChange={(e) => setSeasonFixedPrice(e.target.value)}
-              />
-              <Select
-                value={seasonPaymentMode}
-                onChange={(e) => setSeasonPaymentMode(e.target.value as 'FULL' | 'DEPOSIT')}
-              >
-                <option value="DEPOSIT">Pago con deposito</option>
-                <option value="FULL">Pago 100%</option>
-              </Select>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                disabled={seasonPaymentMode === 'FULL'}
-                placeholder="Deposito %"
-                value={seasonDepositPercentage}
-                onChange={(e) => setSeasonDepositPercentage(e.target.value)}
-              />
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Fecha inicio</span>
+                <Input type="date" value={seasonStartDate} onChange={(e) => setSeasonStartDate(e.target.value)} required />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Fecha fin</span>
+                <Input type="date" value={seasonEndDate} onChange={(e) => setSeasonEndDate(e.target.value)} required />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Multiplicador</span>
+                <Input
+                  type="number"
+                  min={0.1}
+                  step="0.01"
+                  placeholder="Multiplicador"
+                  value={seasonMultiplier}
+                  onChange={(e) => setSeasonMultiplier(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Precio fijo</span>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Precio fijo"
+                  value={seasonFixedPrice}
+                  onChange={(e) => setSeasonFixedPrice(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Modo de pago</span>
+                <Select
+                  value={seasonPaymentMode}
+                  onChange={(e) => setSeasonPaymentMode(e.target.value as 'FULL' | 'DEPOSIT')}
+                >
+                  <option value="DEPOSIT">Pago con deposito</option>
+                  <option value="FULL">Pago 100%</option>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-slate-700">Deposito (%)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  disabled={seasonPaymentMode === 'FULL'}
+                  placeholder="Deposito %"
+                  value={seasonDepositPercentage}
+                  onChange={(e) => setSeasonDepositPercentage(e.target.value)}
+                />
+              </div>
               <Button type="submit" className="md:col-span-3" disabled={savingSeason}>
                 {savingSeason ? 'Guardando...' : 'Crear temporada'}
               </Button>
@@ -1137,6 +1197,7 @@ export function OwnerPropertyWorkspace({
               <div className="rounded border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Prefijo de Reservas</h3>
                 <div className="mt-3 max-w-sm space-y-1">
+                  <span className="text-xs font-medium text-slate-700">Prefijo</span>
                   <Input
                     placeholder="EF"
                     maxLength={3}
@@ -1176,7 +1237,7 @@ export function OwnerPropertyWorkspace({
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <label className="space-y-1">
-                    <span className="text-xs text-slate-700">SMTP Host</span>
+                    <span className="text-xs font-medium text-slate-700">SMTP Host</span>
                     <Input
                       placeholder="smtp.tu-proveedor.com"
                       {...smtpForm.register('smtpHost', {
@@ -1190,7 +1251,7 @@ export function OwnerPropertyWorkspace({
                   </label>
 
                   <label className="space-y-1">
-                    <span className="text-xs text-slate-700">SMTP Port</span>
+                    <span className="text-xs font-medium text-slate-700">SMTP Port</span>
                     <Input
                       type="number"
                       min={1}
@@ -1209,7 +1270,7 @@ export function OwnerPropertyWorkspace({
                   </label>
 
                   <label className="space-y-1">
-                    <span className="text-xs text-slate-700">SMTP User</span>
+                    <span className="text-xs font-medium text-slate-700">SMTP User</span>
                     <Input
                       placeholder="usuario-smtp"
                       {...smtpForm.register('smtpUser', {
@@ -1223,7 +1284,7 @@ export function OwnerPropertyWorkspace({
                   </label>
 
                   <label className="space-y-1">
-                    <span className="text-xs text-slate-700">SMTP Password (encriptada en BD)</span>
+                    <span className="text-xs font-medium text-slate-700">SMTP Password (encriptada en BD)</span>
                     <Input
                       type="password"
                       placeholder="********"
@@ -1234,7 +1295,7 @@ export function OwnerPropertyWorkspace({
                   </label>
 
                   <label className="space-y-1 md:col-span-2">
-                    <span className="text-xs text-slate-700">Email remitente (From)</span>
+                    <span className="text-xs font-medium text-slate-700">Email remitente (From)</span>
                     <Input
                       type="email"
                       placeholder="reservas@tu-dominio.com"
@@ -1253,7 +1314,7 @@ export function OwnerPropertyWorkspace({
                   </label>
 
                   <label className="space-y-1 md:col-span-2">
-                    <span className="text-xs text-slate-700">Email de prueba (opcional)</span>
+                    <span className="text-xs font-medium text-slate-700">Email de prueba (opcional)</span>
                     <Input
                       type="email"
                       placeholder="owner@example.com"
@@ -1286,16 +1347,22 @@ export function OwnerPropertyWorkspace({
               <div className="rounded border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Invitar colaboradores</h3>
                 <form onSubmit={onInviteOwner} className="mt-3 space-y-3">
-                  <Input
-                    type="email"
-                    placeholder="owner@example.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    required
-                  />
-                  <Select value="OWNER" disabled>
-                    <option value="OWNER">OWNER</option>
-                  </Select>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-slate-700">Email colaborador</span>
+                    <Input
+                      type="email"
+                      placeholder="owner@example.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-slate-700">Rol</span>
+                    <Select value="OWNER" disabled>
+                      <option value="OWNER">OWNER</option>
+                    </Select>
+                  </div>
                   <Button type="submit" disabled={sendingInvite}>
                     {sendingInvite ? 'Enviando...' : 'Invitar OWNER'}
                   </Button>

@@ -33,7 +33,7 @@ export function StringArrayEditor({
   return (
     <div className="space-y-2 rounded-md border border-slate-200 p-3">
       <div className="flex items-center justify-between">
-        <Label>{label}</Label>
+        <Label className="text-xs font-medium text-slate-700">{label}</Label>
         <Button type="button" variant="outline" onClick={() => setItems((prev) => [...prev, ''])}>
           {addLabel}
         </Button>
@@ -77,7 +77,7 @@ export function ObjectArrayEditor({
   return (
     <div className="space-y-2 rounded-md border border-slate-200 p-3">
       <div className="flex items-center justify-between">
-        <Label>{label}</Label>
+        <Label className="text-xs font-medium text-slate-700">{label}</Label>
         <Button
           type="button"
           variant="outline"

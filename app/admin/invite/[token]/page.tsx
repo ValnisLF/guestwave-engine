@@ -2,11 +2,14 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@infra/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { createAdminSession } from '@/lib/admin-session';
 import { ensureAppUserByEmail } from '@/lib/admin-auth';
 import { hashPassword } from '@/lib/password';
+
+const FIELD_LABEL_CLASS = 'text-xs font-medium text-slate-700';
 
 async function acceptInviteAction(formData: FormData) {
   'use server';
@@ -136,15 +139,25 @@ export default async function AcceptInvitePage({
           ) : (
             <form action={acceptInviteAction} className="space-y-3">
               <input type="hidden" name="token" value={token} />
-              <Input name="email" type="email" defaultValue={invite.email} required />
-              <Input name="password" type="password" placeholder="Create password" minLength={8} required />
-              <Input
-                name="confirmPassword"
-                type="password"
-                placeholder="Confirm password"
-                minLength={8}
-                required
-              />
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-email">Email</Label>
+                <Input id="invite-email" name="email" type="email" defaultValue={invite.email} required />
+              </div>
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-password">Password</Label>
+                <Input id="invite-password" name="password" type="password" placeholder="Create password" minLength={8} required />
+              </div>
+              <div className="space-y-1">
+                <Label className={FIELD_LABEL_CLASS} htmlFor="invite-confirm-password">Confirm password</Label>
+                <Input
+                  id="invite-confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Confirm password"
+                  minLength={8}
+                  required
+                />
+              </div>
               <Button type="submit" className="w-full">
                 Create access and continue
               </Button>
