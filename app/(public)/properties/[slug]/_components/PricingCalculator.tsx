@@ -15,6 +15,8 @@ interface PricingCalculatorProps {
   minimumStay: number;
   depositPercentage: number;
   unavailableDates: Array<{ startDate: Date; endDate: Date }>;
+  initialStartDate?: string;
+  initialEndDate?: string;
 }
 
 type EstimatePriceResult = {
@@ -35,10 +37,12 @@ export function PricingCalculator({
   minimumStay,
   depositPercentage,
   unavailableDates,
-}: PricingCalculatorProps) {
+  initialStartDate,
+  initialEndDate,
+}: Readonly<PricingCalculatorProps>) {
   const isMockCheckoutEnabled = process.env.NEXT_PUBLIC_MOCK_CHECKOUT === '1';
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(initialStartDate ?? '');
+  const [endDate, setEndDate] = useState<string>(initialEndDate ?? '');
   const [pricing, setPricing] = useState<EstimatePriceResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -153,10 +157,10 @@ export function PricingCalculator({
       setEndDate(nextEndDate);
     };
 
-    window.addEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
+    globalThis.addEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
 
     return () => {
-      window.removeEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
+      globalThis.removeEventListener('guestwave:date-range-selected', onCalendarDateRangeSelected);
     };
   }, []);
 
@@ -191,8 +195,19 @@ export function PricingCalculator({
       return;
     }
 
-    window.location.href = result.checkoutUrl;
+    globalThis.location.href = result.checkoutUrl;
   };
+
+  let checkoutButtonLabel = 'Book Now';
+  if (loading) {
+    checkoutButtonLabel = 'Calculating...';
+  } else if (checkoutLoading) {
+    checkoutButtonLabel = isMockCheckoutEnabled
+      ? 'Confirming booking...'
+      : 'Redirecting to Stripe...';
+  } else if (isMockCheckoutEnabled) {
+    checkoutButtonLabel = 'Book Now (Test Mode)';
+  }
 
   return (
     <div className="space-y-4 text-slate-900">
@@ -306,7 +321,7 @@ export function PricingCalculator({
             </span>
           </div>
 
-          {depositPercentage > 0 && pricing.deposit && (
+          {depositPercentage > 0 && Boolean(pricing.deposit) && (
             <div className="flex justify-between text-sm text-slate-600">
               <span>Deposit ({depositPercentage}%)</span>
               <span>${pricing.deposit?.toFixed(0)}</span>
@@ -338,15 +353,7 @@ export function PricingCalculator({
         disabled={!pricing || loading || checkoutLoading || startDate === '' || endDate === ''}
         className="mt-4 w-full"
       >
-        {loading
-          ? 'Calculating...'
-          : checkoutLoading
-            ? isMockCheckoutEnabled
-              ? 'Confirming booking...'
-              : 'Redirecting to Stripe...'
-            : isMockCheckoutEnabled
-              ? 'Book Now (Test Mode)'
-              : 'Book Now'}
+        {checkoutButtonLabel}
                   </Button>
 
       <p className="text-xs text-slate-500 text-center">

@@ -6,14 +6,22 @@
 
 import { z } from 'zod';
 
+const urlString = (message?: string) =>
+  z.string().refine((value) => URL.canParse(value), {
+    message: message ?? 'URL inválida',
+  });
+
+const emailString = (message?: string) => z.email(message ? { message } : undefined);
+const uuidString = (message?: string) => z.uuid(message ? { message } : undefined);
+
 const MediaItemSchema = z.object({
-  url: z.string().url(),
+  url: urlString(),
   label: z.string().optional(),
   alt: z.string().optional(),
 });
 
 const CardItemSchema = z.object({
-  image: z.string().url(),
+  image: urlString(),
   title: z.string(),
   subtitle: z.string().optional(),
   link: z.string().optional(),
@@ -24,27 +32,28 @@ export const PropertyPageContentSchema = z.object({
     .object({
       primaryColor: z.string().optional(),
       accentColor: z.string().optional(),
+      creamColor: z.string().optional(),
     })
     .optional(),
 
   header: z.object({
-    logoUrl: z.string().url().optional(),
+    logoUrl: urlString().optional(),
   }),
 
   footer: z.object({
-    logoUrl: z.string().url().optional(),
+    logoUrl: urlString().optional(),
     shortText: z.string().optional(),
-    instagramUrl: z.string().url().optional(),
-    googleUrl: z.string().url().optional(),
+    instagramUrl: urlString().optional(),
+    googleUrl: urlString().optional(),
     phone: z.string().optional(),
-    email: z.string().email().optional(),
+    email: emailString().optional(),
     address: z.string().optional(),
     coordinates: z.string().optional(),
   }),
 
   homepage: z.object({
     hero: z.object({
-      image: z.string().url().optional(),
+      image: urlString().optional(),
       title: z.string(),
       subtitle: z.string().optional(),
     }),
@@ -56,7 +65,7 @@ export const PropertyPageContentSchema = z.object({
       title: z.string(),
       paragraph: z.string().optional(),
       items: z.array(z.string()).optional(),
-      image: z.string().url().optional(),
+      image: urlString().optional(),
     }),
     availability: z.object({
       title: z.string().optional(),
@@ -64,7 +73,7 @@ export const PropertyPageContentSchema = z.object({
     }),
     areaCarousel: z.array(
       z.object({
-        url: z.string().url(),
+        url: urlString(),
         title: z.string().optional(),
         subtitle: z.string().optional(),
       })
@@ -72,7 +81,7 @@ export const PropertyPageContentSchema = z.object({
   }),
 
   laPropiedad: z.object({
-    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    hero: z.object({ image: urlString().optional(), title: z.string() }),
     intro: z.object({
       title: z.string().optional(),
       paragraph: z.string().optional(),
@@ -81,32 +90,32 @@ export const PropertyPageContentSchema = z.object({
       title: z.string(),
       paragraph: z.string().optional(),
       items: z.array(z.string()).optional(),
-      image: z.string().url().optional(),
+      image: urlString().optional(),
     }),
     firstFloor: z.object({
       title: z.string(),
       paragraph: z.string().optional(),
       items: z.array(z.string()).optional(),
-      image: z.string().url().optional(),
+      image: urlString().optional(),
     }),
     exterior: z.object({
       title: z.string(),
       paragraph: z.string().optional(),
       items: z.array(z.string()).optional(),
-      image: z.string().url().optional(),
+      image: urlString().optional(),
     }),
     gallery: z.array(MediaItemSchema),
   }),
 
   turismo: z.object({
-    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    hero: z.object({ image: urlString().optional(), title: z.string() }),
     queHacer: z.array(CardItemSchema),
     queVisitar: z.array(CardItemSchema),
     queComer: z.array(CardItemSchema),
   }),
 
   reservas: z.object({
-    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    hero: z.object({ image: urlString().optional(), title: z.string() }),
     intro: z.object({
       title: z.string().optional(),
       paragraph: z.string().optional(),
@@ -119,7 +128,7 @@ export const PropertyPageContentSchema = z.object({
   }),
 
   tarifas: z.object({
-    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    hero: z.object({ image: urlString().optional(), title: z.string() }),
     intro: z.object({
       title: z.string().optional(),
       paragraph: z.string().optional(),
@@ -131,10 +140,10 @@ export const PropertyPageContentSchema = z.object({
   }),
 
   contacto: z.object({
-    hero: z.object({ image: z.string().url().optional(), title: z.string() }),
+    hero: z.object({ image: urlString().optional(), title: z.string() }),
     intro: z.object({ title: z.string(), paragraph: z.string() }),
     phone: z.string().optional(),
-    email: z.string().email().optional(),
+    email: emailString().optional(),
     address: z.string().optional(),
   }),
 });
@@ -201,10 +210,9 @@ export const pageContentSectionSchemas = {
 } as const;
 
 export const pageContentSchema = PropertyPageContentSchema;
-export type PageContent = PropertyPageContent;
 export type PageContentSectionKey = keyof typeof pageContentSectionSchemas;
 
-export const mediaItemSchema = z.string().url('MediaItem debe ser una URL válida');
+export const mediaItemSchema = urlString('MediaItem debe ser una URL válida');
 export type MediaItem = z.infer<typeof mediaItemSchema>;
 
 export const mediaSectionBlockSchema = z.object({
@@ -240,7 +248,7 @@ export const createPropertySchema = z.object({
     .nullable(),
 
   imageUrls: z
-    .array(z.string().url('Cada foto debe ser una URL válida'))
+    .array(urlString('Cada foto debe ser una URL válida'))
     .max(20, 'No puede haber más de 20 fotos')
     .optional()
     .default([]),
@@ -264,11 +272,7 @@ export const createPropertySchema = z.object({
     .max(100, 'Depósito no puede ser mayor a 100%')
     .default(0),
 
-  icalUrlIn: z
-    .string()
-    .url('URL del iCal debe ser válida')
-    .optional()
-    .nullable(),
+  icalUrlIn: z.union([urlString('URL del iCal debe ser válida'), z.null()]).optional(),
 
   pageContent: pageContentSchema.optional(),
 });
@@ -288,7 +292,7 @@ export const updatePropertySchema = createPropertySchema
   })
   .extend({
     imageUrls: z
-      .array(z.string().url('Cada foto debe ser una URL válida'))
+      .array(urlString('Cada foto debe ser una URL válida'))
       .max(20, 'No puede haber más de 20 fotos')
       .optional(),
     cleaningFee: z.number().gte(0, 'Prima de limpieza no puede ser negativa').optional(),
@@ -308,7 +312,7 @@ export const updatePropertySchema = createPropertySchema
   .superRefine((data, ctx) => {
     if (Object.keys(data).length === 0) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: 'Al menos un campo debe ser proporcionado para la actualización',
       });
     }
@@ -321,7 +325,7 @@ export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
  * Usado post-creación
  */
 export const propertySchema = createPropertySchema.extend({
-  id: z.string().uuid(),
+  id: uuidString(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

@@ -35,11 +35,23 @@ export default async function PropertyReservationsPage({
   searchParams,
 }: Readonly<{
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ checkout?: string; bookingCode?: string; bookingId?: string }>;
+  searchParams: Promise<{
+    checkout?: string;
+    bookingCode?: string;
+    bookingId?: string;
+    checkIn?: string;
+    checkOut?: string;
+  }>;
 }>) {
   const { slug } = await params;
-  const { checkout, bookingCode, bookingId } = await searchParams;
+  const { checkout, bookingCode, bookingId, checkIn, checkOut } = await searchParams;
   const publicBookingCode = bookingCode ?? bookingId;
+
+  const isISODate = (value: string | undefined) =>
+    typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+  const prefillCheckIn = isISODate(checkIn) ? checkIn : undefined;
+  const prefillCheckOut = isISODate(checkOut) ? checkOut : undefined;
 
   if (!slug) {
     notFound();
@@ -117,7 +129,11 @@ export default async function PropertyReservationsPage({
         <div className="space-y-8 lg:col-span-2">
           <div>
             <h3 className="mb-4 text-2xl font-semibold text-slate-900">Availability</h3>
-            <PropertyCalendar unavailableDates={unavailableDates} />
+            <PropertyCalendar
+              unavailableDates={unavailableDates}
+              initialStartDate={prefillCheckIn}
+              initialEndDate={prefillCheckOut}
+            />
           </div>
         </div>
 
@@ -143,6 +159,8 @@ export default async function PropertyReservationsPage({
               minimumStay={property.minimumStay}
               depositPercentage={property.depositPercentage}
               unavailableDates={unavailableDates}
+              initialStartDate={prefillCheckIn}
+              initialEndDate={prefillCheckOut}
             />
           </div>
         </div>

@@ -5,14 +5,35 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
+function parseISODate(value?: string): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+type PropertyCalendarProps = {
+  unavailableDates: Array<{ startDate: Date; endDate: Date }>;
+  initialStartDate?: string;
+  initialEndDate?: string;
+};
+
 export function PropertyCalendar({
   unavailableDates,
-}: {
-  unavailableDates: Array<{ startDate: Date; endDate: Date }>;
-}) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedStart, setSelectedStart] = useState<Date | null>(null);
-  const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
+  initialStartDate,
+  initialEndDate,
+}: Readonly<PropertyCalendarProps>) {
+  const parsedStart = parseISODate(initialStartDate);
+  const parsedEnd = parseISODate(initialEndDate);
+
+  const initialStart = parsedStart;
+  const initialEnd = parsedStart && parsedEnd && parsedEnd > parsedStart ? parsedEnd : null;
+
+  const [currentDate, setCurrentDate] = useState(
+    initialStart ?? new Date()
+  );
+  const [selectedStart, setSelectedStart] = useState<Date | null>(initialStart);
+  const [selectedEnd, setSelectedEnd] = useState<Date | null>(initialEnd);
 
   const toLocalDayTimestamp = (date: Date): number => {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -26,9 +47,9 @@ export function PropertyCalendar({
   };
 
   const emitSelectedRange = (start: Date | null, end: Date | null) => {
-    if (typeof window === 'undefined') return;
+    if (globalThis.window === undefined) return;
 
-    window.dispatchEvent(
+    globalThis.dispatchEvent(
       new CustomEvent('guestwave:date-range-selected', {
         detail: {
           startDate: start ? toDateKey(start) : '',
@@ -105,27 +126,21 @@ export function PropertyCalendar({
           variant="ghost"
           size="sm"
           onClick={() => {
-            if (!selectedStart || (selectedStart && selectedEnd)) {
+            if (!selectedStart || selectedEnd || date <= selectedStart) {
               setSelectedStart(date);
               setSelectedEnd(null);
               emitSelectedRange(date, null);
-            } else if (date > selectedStart) {
+            } else {
               setSelectedEnd(date);
               emitSelectedRange(selectedStart, date);
-            } else {
-              setSelectedStart(date);
-              setSelectedEnd(null);
-              emitSelectedRange(date, null);
             }
           }}
           disabled={disabled}
-          className={`p-2 rounded text-sm font-medium transition-colors ${
-            disabled
-              ? 'bg-red-100 text-red-500 cursor-not-allowed'
-              : selected
-                ? 'bg-blue-600 text-white'
-                : 'hover:bg-blue-100'
-          }`}
+          className={`p-2 rounded text-sm font-medium transition-colors ${(() => {
+            if (disabled) return 'bg-red-100 text-red-500 cursor-not-allowed';
+            if (selected) return 'bg-blue-600 text-white';
+            return 'hover:bg-blue-100';
+          })()}`}
         >
           {day}
         </Button>

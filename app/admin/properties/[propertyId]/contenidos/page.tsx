@@ -43,7 +43,9 @@ function setByPath(target: unknown, path: string, value: unknown) {
     current = current[key] as Record<string, unknown>;
   }
 
-  current[parts[parts.length - 1]] = value;
+  const lastPart = parts.at(-1);
+  if (!lastPart) return;
+  current[lastPart] = value;
 }
 
 function emptyToUndefined(value: unknown) {
@@ -70,6 +72,7 @@ function sanitizePayload(content: PropertyPageContent): PropertyPageContent {
   const optionalStringPaths = [
     'theme.primaryColor',
     'theme.accentColor',
+    'theme.creamColor',
     'header.logoUrl',
     'footer.logoUrl',
     'footer.shortText',
@@ -182,7 +185,7 @@ function getPathValue(target: unknown, path: string): unknown {
   }, target);
 }
 
-export default async function PropertyContenidosPage({ params }: PageProps) {
+export default async function PropertyContenidosPage({ params }: Readonly<PageProps>) {
   const resolvedParams = params instanceof Promise ? await params : params;
 
   const property = await prisma.property.findUnique({
@@ -219,6 +222,7 @@ export default async function PropertyContenidosPage({ params }: PageProps) {
 
       if (result.success) {
         revalidatePath(`/admin/properties/${safeProperty.id}/contenidos`);
+        revalidatePath(`/properties/${safeProperty.slug}`, 'layout');
         revalidatePath(`/properties/${safeProperty.slug}`);
         revalidatePath(`/properties/${safeProperty.slug}/la-propiedad`);
         revalidatePath(`/properties/${safeProperty.slug}/turismo`);
@@ -264,6 +268,10 @@ export default async function PropertyContenidosPage({ params }: PageProps) {
                   <div className="space-y-1">
                     <Label htmlFor="theme-accent">theme.accentColor</Label>
                     <Input id="theme-accent" name="theme.accentColor" defaultValue={initial.theme?.accentColor ?? ''} />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="theme-cream">theme.creamColor</Label>
+                    <Input id="theme-cream" name="theme.creamColor" defaultValue={initial.theme?.creamColor ?? ''} />
                   </div>
                 </div>
 
